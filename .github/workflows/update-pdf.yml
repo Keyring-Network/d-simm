@@ -1,0 +1,55 @@
+name: Update PDF
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Install LaTeX
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends latexmk texlive-latex-extra texlive-fonts-recommended texlive-publishers
+
+      - name: Build PDF
+        run: latexmk -pdf -interaction=nonstopmode -halt-on-error dsimm.tex
+
+      - name: Upload PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: dsimm-pdf
+          path: dsimm.pdf
+
+      - name: Update PDF on internal branch
+        if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'github-actions[bot]'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          current_sha=$(gh api "repos/${GITHUB_REPOSITORY}/contents/dsimm.pdf?ref=${HEAD_REF}" --jq .sha 2>/dev/null || true)
+          generated_sha=$(git hash-object dsimm.pdf)
+          if [[ "$current_sha" == "$generated_sha" ]]; then
+            exit 0
+          fi
+
+          base64 -w 0 dsimm.pdf > /tmp/dsimm.b64
+          if [[ -n "$current_sha" ]]; then
+            jq -n --rawfile content /tmp/dsimm.b64 --arg message "docs: update compiled PDF" --arg branch "$HEAD_REF" --arg sha "$current_sha" \
+              '{message: $message, content: $content, branch: $branch, sha: $sha}' > /tmp/update-pdf.json
+          else
+            jq -n --rawfile content /tmp/dsimm.b64 --arg message "docs: update compiled PDF" --arg branch "$HEAD_REF" \
+              '{message: $message, content: $content, branch: $branch}' > /tmp/update-pdf.json
+          fi
+
+          gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/dsimm.pdf" --input /tmp/update-pdf.json
