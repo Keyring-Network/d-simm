@@ -1,0 +1,300 @@
+% ==================
+% 4) AGGREGATION
+% ==================
+\section{The SIMM delta aggregation engine}\label{sec:normalisation}
+The engine converts the attested Common Risk Interchange Format sensitivities of Section~\ref{sec:taxonomy} into a
+per-collateral haircut $H^{(a)}$, with the day-one proxies of
+Section~\ref{sec:tax-simm-assignment} standing in until the first attested file arrives. The
+market-risk core is the ISDA SIMM v2.6 \emph{delta} margin, inherited
+verbatim~\cite{isda_simm_v2_6}: every risk weight $\mathrm{RW}_k$, intra-bucket correlation
+$\rho_{kl}$, cross-bucket correlation $\gamma_{bc}$, and inter-class matrix $\psi_{rr'}$ is
+taken from the published ISDA parameter set. Nothing in this section is fitted.
+
+The framework's own open parameters sit outside this engine. The practitioner applying the
+framework sets them, and each one is enumerated as a free parameter
+(Appendix~\ref{sec:free-parameters}).
+
+Five risk classes are in scope: Interest Rate (IR), Qualifying Credit (CreditQ),
+Non-Qualifying Credit (CreditNonQ), Equity, and FX. Commodity is unused. The scope is delta
+margin only. Section~\ref{sec:tax-market} records why a linear, long-only holding of fund
+units attracts neither vega nor curvature margin under SIMM \P\,9. It also records what the
+framework substitutes where prepayment optionality is embedded, and why base correlation
+never enters.
+
+The engine's output is an initial margin $\mathrm{IM}^{(a)}$ per unit of published
+valuation. The haircut then follows in closed form, Eq.~\eqref{eq:agg-haircut}. The
+pipeline is computed in one direction with no circular dependency
+(Section~\ref{sec:theory:capacity}).
+
+\subsection{Weighted sensitivities and concentration}\label{sec:agg-ws}
+For each risk factor $k$ with attested sensitivity $s_k$ (DV01, CS01, or unit fund
+delta, expressed per unit of published valuation), the weighted sensitivity is
+\begin{equation}\label{eq:agg-ws}
+\mathrm{WS}_k=\mathrm{RW}_k\, s_k\, \mathrm{CR}_k ,
+\end{equation}
+with $\mathrm{RW}_k$ read from the v2.6 tables for the class/bucket assignment of
+Section~\ref{sec:taxonomy}. The concentration risk factor keeps SIMM's functional form
+but re-keys its threshold from dealer-market terms to the only exit route that
+exists for this universe:
+\begin{equation}\label{eq:agg-cr}
+\mathrm{CR}=\max\!\left(1,\sqrt{\frac{\mathrm{position}}{T}}\right),\qquad
+T=R_{\mathrm{cap}},
+\end{equation}
+where $\mathrm{position}$ is the deployment's aggregate exposure to the collateral at the current
+published valuation and $R_{\mathrm{cap}}$ is the issuer's \emph{attested redemption capacity per dealing window}.
+Haircuts therefore steepen automatically, and smoothly, as a position outgrows its exit
+route. The same number $R_{\mathrm{cap}}$ drives the borrow and supply caps in
+Section~\ref{sec:policy}. Because the supply cap satisfies
+$S_{\max}\le M R_{\mathrm{cap}}$, the multiplier is bounded:
+$\mathrm{CR}\le\sqrt{M}$.
+
+\subsection{Within-bucket aggregation}\label{sec:agg-bucket}
+Within each bucket $b$ of a risk class,
+\begin{equation}\label{eq:kb}
+K_b=\sqrt{\Bigl(\sum_{k\in b}\mathrm{WS}_k^2+\sum_{k\in b}\sum_{l\neq k}\rho_{kl}\,f_{kl}\,
+\mathrm{WS}_k\,\mathrm{WS}_l\Bigr)_{\!+}},
+\end{equation}
+with $\rho_{kl}$ the published intra-bucket correlation, $(x)_+:=\max(x,0)$, and the
+concentration-diversification factor
+$f_{kl}=\min(\mathrm{CR}_k,\mathrm{CR}_l)/\max(\mathrm{CR}_k,\mathrm{CR}_l)$.
+$f_{kl}$ lowers the diversification credit between factors held at different
+concentrations in the published standard, and under the re-keyed threshold it equals one
+identically. The threshold is the single number $T=R_{\mathrm{cap}}$ and the position is
+the deployment's aggregate exposure to the collateral, so every factor of one collateral
+takes the same $\mathrm{CR}$, and the same holds for $g_{bc}$ in
+Eq.~\eqref{eq:ir}. The two factors take
+values below one only where the practitioner measures positions at a finer granularity
+than the aggregate exposure of Eq.~\eqref{eq:agg-cr}. The zero floor is inert under the published
+correlations. FRTB applies the
+same guard one level up, in the across-bucket sum \citep{bcbs_frtb_d457}, which
+Eq.~\eqref{eq:dm} inherits through the bounds on $S_b$.
+
+\subsection{Across-bucket aggregation}\label{sec:agg-class}
+For each risk class $r$, buckets aggregate as
+\begin{equation}\label{eq:dm}
+\begin{aligned}
+\mathrm{DeltaMargin}_r&=\sqrt{\sum_b K_b^2+\sum_b\sum_{c\neq b}\gamma_{bc}\,S_b\,S_c}
+\;+\;K_{\mathrm{residual}},\\
+S_b&=\max\!\Bigl(\min\Bigl(\sum_{k\in b}\mathrm{WS}_k,\,K_b\Bigr),\,-K_b\Bigr).
+\end{aligned}
+\end{equation}
+The bucket sums $S_b$, bounded to $[-K_b,K_b]$, keep each bucket's signed contribution
+within its own stand-alone margin, so cross-bucket terms can never manufacture risk a
+bucket does not hold. The
+Residual bucket is \emph{additive} (it receives no diversification benefit), which
+is precisely the mechanism that charges for a missing sector or quality attestation
+(Section~\ref{sec:agg-missing}).
+
+\subsection{The interest-rate variant}\label{sec:agg-ir}
+The IR class differs in three inherited respects.
+First, buckets are currencies, and the published standard applies concentration \emph{per
+currency}. The framework instead evaluates $\mathrm{CR}$ on the asset's aggregate exposure
+at the published valuation, exactly as Eq.~\eqref{eq:agg-cr} does. The re-keyed
+threshold $T=R_{\mathrm{cap}}$ is a capacity in USD, so the position compared against it is
+an amount in USD rather than a sum of sensitivities. A per-currency multiplier arises only
+where the practitioner measures the position by currency, and $\mathrm{CR}_b$ then reads
+the USD of published valuation whose interest-rate sensitivities sit in currency $b$. The
+within-currency aggregation uses the single $\mathrm{CR}_b$ rather than per-factor
+$f_{kl}$. Second, distinct sub-curves
+of the same currency correlate at the published sub-curve parameter
+$\rho_{\mathrm{sub}}=0.993$, applied multiplicatively to the tenor correlation $\rho_{kl}$ in
+Eq.~\eqref{eq:kb}. A portfolio in this universe typically holds the overnight indexed swap (OIS) sub-curve only, so $\rho_{\mathrm{sub}}$ enters only where a second sub-curve is held, for example a USD \emph{Prime} sub-curve on floating-rate consumer-credit collateral.
+Third, the cross-currency term scales by the concentration ratio:
+\begin{equation}\label{eq:ir}
+\mathrm{DeltaMargin}_{\mathrm{IR}}
+=\sqrt{\sum_b K_b^2+\sum_b\sum_{c\neq b}\gamma_{bc}\,g_{bc}\,S_b\,S_c},\qquad
+g_{bc}=\frac{\min(\mathrm{CR}_b,\mathrm{CR}_c)}{\max(\mathrm{CR}_b,\mathrm{CR}_c)}.
+\end{equation}
+For the predominantly single-currency (USD) portfolios in this universe,
+Eq.~\eqref{eq:ir} reduces to $K_{\mathrm{USD}}$.
+
+\subsection{Risk-class roll-up and the haircut}\label{sec:agg-haircut}
+Writing $\mathrm{IM}_r:=\mathrm{DeltaMargin}_r$, the risk classes a SIMM product class $p$
+holds combine through the published inter-class matrix $\psi_{rr'}$, and the product-class
+margins then add:
+\begin{equation}\label{eq:psi}
+\mathrm{IM}_p=\sqrt{\sum_{r\in p} \mathrm{IM}_r^2+\sum_{r\in p}\sum_{r'\neq r}\psi_{rr'}\,
+\mathrm{IM}_r\,\mathrm{IM}_{r'}},\qquad
+\mathrm{IM}=\sum_p \mathrm{IM}_p .
+\end{equation}
+This is the strict SIMM v2.6 reading: the product-class margins, RatesFX and Credit among
+them, take no diversification between them. Where each product class holds one risk class, as it does for
+the collateral types in scope, that addition reduces to the plain sum of the class margins
+and $\psi_{rr'}$ never enters. Margining the collateral as a single product class instead
+would diversify its rate and credit legs under $\psi_{rr'}$, and since $\psi_{rr'}\le 1$ it
+would return the smaller number. The two readings differ in aggregation structure rather
+than in any published value.
+
+SIMM is calibrated to a 99\% confidence level over ten business days, and $\mathrm{IM}^{(a)}$ enters at that
+horizon \emph{verbatim}, with no rescaling for the margin period of risk. Those ten business days
+are the reference horizon of the inherited standard. Section~\ref{sec:theory:stress} states the
+attribution convention that splits the reserve at ten business days. The extension to the full
+clearing window is charged through a separate haircut component,
+$\delta_{\mathrm{clear}}$, defined next. Keeping $\mathrm{IM}$ at the native ten-business-day
+horizon is deliberate, because exact reconciliation against the published ISDA standard
+holds only if the market-risk core is the unmodified standard.
+
+\paragraph{The clearing discount $\delta_{\mathrm{clear}}$.} The clearing discount reconciles the SIMM charge at ten business days to the price risk of the governing clearing window, as an additive haircut component held \emph{above} the liquidation threshold. Its single defining equation is Eq.~\eqref{eq:m-scaling} (Section~\ref{sec:theory}), which fixes the day-one value, the terms a margin credit requires, and the floor the rescaled move sets on the total price-risk charge. The framework does not prescribe the clearing mechanism.
+
+The haircut is
+\begin{equation}\label{eq:agg-haircut}
+H=\mathrm{IM}+\delta_{\mathrm{clear}}+\delta_{\mathrm{carry}}+\Lambda,\qquad
+\Lambda=\sum_j \lambda_j ,
+\end{equation}
+where $\Lambda$ is the sum of the additive layers: gating and suspension, valuation
+staleness and smoothing, oracle pipeline integrity ($0$ at the robust configuration), a default
+add-on ($PD\times LGD$) for private credit, prepayment for amortising collateral, manager and
+operational, wrong-way, a leverage add-on, and an event-risk layer for event-linked collateral
+(the ninth named layer slot). Each layer is expressed as a percentage per listing. The
+practitioner sets the model constants used to determine it. Together
+they charge for exactly what a sensitivity-based margin structurally
+cannot see (narrowed redemptions, smoothed valuations, jump-to-default, wrapper and wrong-way
+risk). The interest cost $\delta_{\mathrm{carry}}$ is the certain cost of holding the debt over
+the clearing window, defined once at Eq.~\eqref{eq:delta-carry} of Section~\ref{sec:theory}.
+Policy limits follow immediately, $\theta^{(a)}=\kappa^{(a)}\bigl(1-H^{(a)}\bigr)$ and
+$\ell_{\max}^{(a)}=\theta^{(a)}-\nu$, with $\theta^{(a)}=1-H^{(a)}$ at the Prime tier. The
+static liquidation buffer $\nu$ is a per-listing constant within the 4--8 percentage-point
+range. Section~\ref{sec:policy} specifies the public constraints on that constant, the caps,
+and the due-diligence tier multipliers.
+
+\subsection{Missing inputs take prescribed floors}\label{sec:agg-missing}
+If any required input is unavailable, it is replaced by a \emph{prescribed conservative
+floor} in the spirit of FRTB's non-modellable risk factor treatment, never by zero.
+Concretely: a missing sector or quality attestation routes the exposure to the
+class's Residual bucket (highest risk weight, additive aggregation per
+Eq.~\eqref{eq:dm}). A missing fund-unit attestation file reclassifies the position
+to Equity Residual, whose published risk weight puts $H^{(a)}$ above one at any window from
+forty business days (Section~\ref{sec:agg-bounded}).
+
+The clearing window $\mathrm{LH}$ of Eq.~\eqref{eq:mpor-eff} takes no floor.
+The three-source hierarchy of Section~\ref{sec:theory:setting} always names a governing
+window: with neither an attested service-level agreement nor a horizon stated in the offering
+documents, the regulatory fallback governs and the worst-case wait is added to it. Observed
+redemptions are never averaged into the window at any level of the hierarchy.
+
+An unattested redemption capacity leaves the threshold $T$ of Eq.~\eqref{eq:agg-cr}
+with no admissible value. The pre-signature document proxy supplies the conservative default from the offering
+document's stated per-cycle gate fraction $g$ times assets under management,
+$R_{\mathrm{cap}} = g\cdot\mathrm{AUM}$, for the first ramp step. Further exposure requires
+a signed attestation, which supersedes that default. An uncured lapse or refusal sets
+$R_{\mathrm{cap}}=0$ instead, which sets both caps to zero and stops new business against the
+asset.
+
+\subsection{Boundedness and the eligibility rule}\label{sec:agg-bounded}
+$H$ is bounded at each recomputation, component by component. The sensitivities $s_k$, per
+unit of published valuation, are bounded by the asset's duration, weighted-average life,
+or unit delta. The $\mathrm{RW}_k$ are fixed published magnitudes.
+$\mathrm{CR}\le\sqrt{M}$ holds under the supply cap (Section~\ref{sec:agg-ws}). The
+model constants set by the practitioner for each layer remain fixed between reviews, so the baseline part of $\Lambda$ is a
+finite sum of constants at each recomputation.
+
+The day-one clearing discount is bounded on both sides by the windows that can govern the asset. It equals $\mathrm{IM}\bigl(\sqrt{\mathrm{LH}/10}-1\bigr)$ (Eq.~\eqref{eq:m-scaling}), which is largest at the longest admissible $\mathrm{LH}$. Under the regulatory fallback of the hierarchy, that window is the FRTB securitisation row of 120 business days plus the worst-case wait to the next submission deadline. An asset whose documented contractual window exceeds the FRTB row takes that contractual window instead, again with the wait added. Either way the governing window is documented, so the value is a finite number known at each recomputation. The negative side is bounded by the policy minimum of one business day, so $\mathrm{IM}+\delta_{\mathrm{clear}}$ never sits below $\mathrm{IM}\sqrt{1/10}$ and the credit never exceeds $0.684\,\mathrm{IM}$.
+
+Three inputs can rise above those bounds while an asset stays listed. Qualified clearing
+observations enter $\delta_{\mathrm{clear}}$ as their conservative quantile
+(Eq.~\eqref{eq:m-scaling}), so an observed clearing
+cost above the rescaled move governs the total price-risk charge, and no model parameter caps it.
+A widening of the realised clearing window under sustained
+settlement failure (Section~\ref{sec:operations}) raises the rescaled move itself. The staleness
+escalation $\Delta\lambda_{\mathrm{stale}}$ added to the baseline set by the practitioner grows with the
+time a publication is overdue (Eq.~\eqref{eq:stale}). Each of the three drives $H$
+toward the cutoff at one rather than toward a ceiling below it. The practitioner-facing
+rule catches the rise:
+\begin{quote}
+\emph{If the computed $H^{(a)}\ge 1$, the collateral is ineligible. $H\ge 1$ is the
+model stating that one clearing window of risk exceeds the position's value. It is
+never interpreted as a negative LTV.}
+\end{quote}
+
+Non-attestation is the case the rule is built for. A market-neutral fund that fails to
+deliver its administrator attestation file
+reclassifies from Equity bucket~11 to Equity Residual, at the published SIMM risk
+weight for that bucket (50 at v2.6). At an illustrative 45-business-day window, the
+$\sqrt{\mathrm{LH}/10}$ extension takes $\mathrm{IM}+\delta_{\mathrm{clear}}$ alone above
+one before any layer is added, so the asset is ineligible by the rule above. That is the
+intended consequence of withholding the file.
+
+\subsection{A treasury money-market fund worked end to end}\label{sec:agg-example}
+The example runs one asset through the whole engine, from a fact sheet to the
+synthetic limits. The asset is a tokenised government money-market fund whose
+administrator publishes a daily net asset value (NAV, the published valuation for this
+asset), with a reported weighted-average maturity of 32 days. Its fact sheet gives the
+maturity distribution: 35\% of NAV maturing within 14 days, 35\% between 15 and 30
+days, 25\% between 31 and 90 days, and 5\% between 91 and 180 days. Every risk weight
+and correlation below is the published v2.6 constant~\cite{isda_simm_v2_6}, and the
+sensitivities are day-one estimates built from the fact sheet. An administrator-attested
+Common Risk Interchange Format file replaces them when delivered.
+
+Bucket assignment starts the chain. Each maturity range goes to the nearest longer
+SIMM vertex at that vertex's own tenor, so the round-up works in the framework's
+favour. The DV01 at each vertex is the range weight, as a fraction of NAV, times the
+vertex tenor. The maturity ladder in Table~\ref{tab:agg-example-inputs} sums to
+$0.1301$\,bp of NAV per bp, a rate duration of 47.5 days against the reported 32.
+The residual sovereign-issuer spread exposure is recorded as the same $0.1301$\,bp of CS01 in
+CreditQ bucket~1 (investment-grade sovereigns, $\mathrm{RW}=75$) under the day-one
+single-name treatment of Section~\ref{sec:tax-simm-assignment}. The position sits inside
+the attested redemption capacity, so every concentration risk factor is one
+($\mathrm{CR}=1$, hence $f_{kl}=1$), and only the overnight indexed swap sub-curve is
+held, so $\rho_{\mathrm{sub}}$ does not enter.
+
+Table~\ref{tab:agg-example-inputs} reports each input per unit of published valuation. Maturity weights are percentages of published valuation, and vertex tenors are in years. DV01 $s_k$ is in basis points of published valuation per basis-point move. The weighted sensitivity $\mathrm{WS}_k=\mathrm{RW}_k s_k/100$ is a percentage of published valuation at $\mathrm{CR}_k=1$ (Eq.~\eqref{eq:agg-ws}). The risk weights are in basis points and come from the published v2.6 tables~\cite{isda_simm_v2_6}.
+
+\begin{table}[h]
+\centering\small
+\caption{Day-one input estimates and weighted sensitivities for the worked example.}
+\label{tab:agg-example-inputs}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+USD IR vertex & 2w & 1m & 3m & 6m \\
+\midrule
+Maturity weight & 35 & 35 & 25 & 5 \\
+Vertex tenor & 0.0384 & 0.0833 & 0.2500 & 0.5000 \\
+DV01 $s_k$ & 0.0134 & 0.0292 & 0.0625 & 0.0250 \\
+$\mathrm{RW}_k$ & 109 & 105 & 90 & 71 \\
+$\mathrm{WS}_k$ & 0.0146 & 0.0306 & 0.0563 & 0.0178 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The IR class is a single currency bucket, so Eq.~\eqref{eq:kb} applies once,
+with the published short-end tenor correlations ($\rho_{2w,1m}=0.77$,
+$\rho_{2w,3m}=0.67$, $\rho_{2w,6m}=0.59$, $\rho_{1m,3m}=0.84$, $\rho_{1m,6m}=0.74$,
+$\rho_{3m,6m}=0.88$):
+\begin{equation}\label{eq:example-ir}
+\mathrm{DeltaMargin}_{\mathrm{IR}}=K_{\mathrm{USD}}
+=\sqrt{\underbrace{0.004631}_{\sum_k\mathrm{WS}_k^2}
++\underbrace{0.007556}_{\sum_{k\neq l}\rho_{kl}\mathrm{WS}_k\mathrm{WS}_l}}
+=0.1104\%.
+\end{equation}
+The credit leg is one risk factor in one bucket,
+$\mathrm{WS}_{\mathrm{CQ}}=75\times0.1301/100=0.0976$\% of NAV, so Eq.~\eqref{eq:dm}
+returns it unchanged as the class margin. The rate leg sits in the RatesFX product class and
+the credit leg in Credit, each holding one risk class, so the two margins add and
+$\psi_{rr'}$ has no pair to diversify:
+\begin{equation}\label{eq:example-im}
+\mathrm{IM}=K_{\mathrm{USD}}+\mathrm{WS}_{\mathrm{CQ}}=0.1104\%+0.0976\%=0.2080\%
+\end{equation}
+per unit NAV, the unmodified SIMM charge at ten business days. Every number in the chain
+traces in two steps to a published v2.6 table entry or to a fact-sheet line.
+
+The policy outputs follow in one pass. The fund deals daily, and its attested terms give the clearing window of Eq.~\eqref{eq:mpor-eff} as three business days. The legs are one day of worst-case wait to the next dealing deadline, no notice period, one dealing day, and settlement on the following business day. Eq.~\eqref{eq:m-scaling} then returns
+\begin{equation}\label{eq:example-dclear}
+\delta_{\mathrm{clear}}=\mathrm{IM}\!\left(\sqrt{\tfrac{3}{10}}-1\right)=-0.09\%,
+\end{equation}
+a margin credit, because the position reaches cash inside SIMM's ten-business-day horizon. The synthetic example assumes no qualified clearing observation that would raise the charge.
+
+The remaining inputs are the practitioner's own elections, shown here at illustrative values. The named layers total $\Lambda=2.0\%$ (gating and suspension $0.5$, valuation staleness and smoothing $0.5$, manager and operational $1.0$). The ceiling borrow rate is $r^{B,\max}=10\%$, the market's annual percentage yield at full utilisation, the due-diligence tier is the top one ($\kappa=1$), and the liquidation buffer is $\nu=4$\,pp. Then $c=r^{B,\max}\,\mathrm{LH}/252=0.001190$, i.e.\ $0.1190\%$, and Eq.~\eqref{eq:carry-solve} gives $H=(0.1139+2.0+0.1190)\%/(1.001190)=2.23\%$ with $\delta_{\mathrm{carry}}=0.12\%$, so Eq.~\eqref{eq:agg-haircut} reads
+\begin{equation}\label{eq:example}
+\begin{aligned}
+H&=\mathrm{IM}+\delta_{\mathrm{clear}}+\delta_{\mathrm{carry}}+\Lambda
+=0.2080\%-0.0941\%+0.1164\%+2.0000\%=2.2303\%,\\
+\theta&=1-H=97.7697\% ,
+\end{aligned}
+\end{equation}
+and the operating LTV ceiling is $\ell_{\max}=\theta-\nu=93.7697\%$. The composition is the point of the example: the illustrative layers contribute $2.0$ of the $2.23$, so the synthetic limits reflect the named layers far more than the inherited SIMM core. The three-day window is worth $0.36$\,pp of borrow limit against the same fund at a window of ten business days.
+
+The same fund at monthly dealing shows the clearing window doing work. Take a
+monthly dealing day with orders due five business days before it and cash paid five
+business days after. An order that just misses a deadline waits up to 22 business
+days for the next dealing day, a rounded worst case for a monthly cycle. Notice, the
+dealing day, and settlement follow, so $\mathrm{LH}=33$ business days. The clearing discount of Eq.~\eqref{eq:m-scaling} turns from a credit into a charge, $\delta_{\mathrm{clear}}=0.2080\%\times(\sqrt{33/10}-1)=+0.17\%$, the interest cost grows with the window to $\delta_{\mathrm{carry}}=1.26\%$, and the same elections raise the haircut from $2.23\%$ to $H=3.64\%$, with $\ell_{\max}=92.36\%$. Nothing else about the asset changed: the increase is the price of waiting more than ten times as long for the issuer to settle, and an attested faster window would earn it back.

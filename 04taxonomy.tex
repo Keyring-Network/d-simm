@@ -1,0 +1,266 @@
+% ==================
+% 3) TAXONOMY
+% ==================
+\section{Risk factors and how each is charged}\label{sec:taxonomy}
+
+The framework fixes the risk factors and their treatments, and the practitioner
+defines their own collateral types against them. Type criteria are qualitative, and the
+practitioner sets them. Each criterion rests on attested facts read from offering documents
+and fact sheets. Where no type fits, the practitioner defines a new type against the fixed risk
+factors. Existing criteria remain unchanged.
+
+Every retained factor feeds exactly one component of Eq.~\eqref{eq:recipe}. The four haircut components are
+the market-risk core $\mathrm{IM}^{(a)}$, the clearing discount
+$\delta_{\mathrm{clear}}^{(a)}$ (Section~\ref{sec:tax-redemption}), the interest cost
+$\delta_{\mathrm{carry}}^{(a)}$, and the named additive layers $\Lambda^{(a)}$. The
+interest cost takes no risk factor because it is a certain cost, the interest the debt
+accrues at the ceiling borrow rate for as long as the position is held
+(Eq.~\eqref{eq:delta-carry}). The route from each component to the on-chain limits is set out in
+Sections~\ref{sec:normalisation} and~\ref{sec:policy}.
+
+The scope conditions of Section~\ref{sec:overview} govern throughout.
+
+% ==== 3.1 Market ====
+\subsection{Market}\label{sec:tax-market}
+The market-risk core is the delta component of the ISDA SIMM v2.6 initial margin. It uses the
+standard's published risk weights, correlations, and ten-business-day horizon unchanged
+\citep{isda_simm_v2_6}. The prescribed numbers are inherited as published, and the deviations
+recorded here are deviations of scope and granularity rather than of any prescribed value.
+Administrator-attested Common Risk Interchange Format sensitivities $s_k$ enter the weighted sensitivities of
+Eq.~\eqref{eq:agg-ws}, each scaled by its published risk weight $\mathrm{RW}_k$ and by the
+concentration risk factor $\mathrm{CR}^{(a)}$ of Section~\ref{sec:tax-redemption}. The
+weighted sensitivities are then combined within each bucket under published correlations,
+across buckets, and finally across the risk classes, under the published SIMM correlations at
+each step. The $\psi$ roll-up across the risk classes IR, CreditQ, CreditNonQ, Equity, and
+FX uses the published inter-class matrix unchanged, applied inside each SIMM product class, and the
+product-class margins then add with no diversification between them (Section~\ref{sec:agg-haircut}).
+
+SIMM \P\,9 attaches vega and curvature margin only to instruments that are options or embed
+one, including prepayment options. A type that is a linear, long-only holding of fund units
+(the fund shares the tokens represent, Section~\ref{sec:fund-unit}) attracts neither.
+Amortising securitised exposures are the exception. Consumer-credit tranches and
+mortgage-backed sleeves embed prepayment optionality, and they would attract vega and
+curvature under a strict \P\,9 reading. The framework instead substitutes the tranche CS01 evaluated at the slower of the disclosed
+conditional prepayment rate and a stressed-extension floor
+(Section~\ref{sec:tax-simm-assignment}) plus the named prepayment layer. The practitioner sets its
+per-type magnitude as a model constant. That
+substitution is documented and conservative rather than a SIMM waiver. It is recorded as
+assumption A14 of the assumptions addendum published alongside this paper.
+
+Cross-currency basis and sub-curve granularity are dropped. A sub-curve is retained wherever
+a floating-rate type's coupons reset off it (SIMM \P\,14), so that type's DV01 is recorded on
+that curve. Base correlation applies only to CDX/iTraxx index-tranche positions, which are
+out of scope, so it never enters.
+
+$\mathrm{IM}^{(a)}$ is the $99\%$ move over SIMM's native ten-business-day horizon, computed
+from \emph{prescribed} shocks. A position in liquidation is held for the whole clearing window
+$\mathrm{LH}^{(a)}$ instead (Section~\ref{sec:theory:stress}). $\mathrm{IM}^{(a)}$ is never
+estimated from the token's own appraisal-smoothed valuation history, whose naive volatility
+estimate is biased low. The clearing discount $\delta_{\mathrm{clear}}^{(a)}$ of
+Section~\ref{sec:theory:stress} rescales that move to the clearing window, in either
+direction.
+
+\subsubsection{SIMM bucket assignment}\label{sec:tax-simm-assignment}
+Each administrator-attested Common Risk Interchange Format row names its own risk class, bucket, and qualifier under
+SIMM v2.6's own definitions. Those definitions cover IR vertices (\P\,14), CreditQ
+issuer/seniority risk factors (\P\,15) bucketed by quality and sector (\P\,38), CreditNonQ
+tranche risk factors (\P\,16) with their buckets (\P\,45), equity fund units (\P\,17), and the
+qualifying-securitisation test (\P\,24). Each listing's assignment is fixed at onboarding as a
+documentation exercise, re-verified each valuation cycle, and any unattested row drops
+automatically to the Residual penalty route (Section~\ref{sec:agg-missing}).
+
+The assignment is derived, and the day-one sensitivity values behind it are estimates rather
+than attested numbers. They are built from the issuer's offering documents under the
+conservative proxy rules stated here. Those rules take the whole
+duration at the nearest longer vertex, one name in the bucket with the highest risk weight, and the
+slower of the disclosed and the stressed prepayment speed.
+Each proxy is constructed to bound the attested
+figure from above, and the administrator-attested Common Risk Interchange Format sensitivities file replaces the
+estimates at onboarding and at each valuation cycle after it. A fund-unit type whose driving
+input is the fund-unit delta itself is the exception, because that delta is 100\% of the
+published valuation, a documented fact rather than an estimate. An event-risk layer magnitude,
+by contrast, is a day-one estimate pending the attested event-model file.
+
+\subsubsection{Fund-unit treatment for market-neutral funds}\label{sec:fund-unit}
+A market-neutral portfolio's long and short legs correspond to the same SIMM risk factors, so net look-through Common Risk Interchange Format sensitivities are $\approx 0$: naive look-through certifies a leveraged basis portfolio as riskless precisely because its real risk (a widening of the basis, a funding squeeze, forced deleveraging) lives in the residuals SIMM nets away.
+
+Per SIMM \P\,17, market-neutral fund collateral is therefore margined as Equity bucket-11 fund units at the published SIMM risk weight for that bucket (19 at v2.6). The look-through Common Risk Interchange Format file is used for \emph{validation only, never netting}.
+
+The treatment requires a valid administrator-signed neutrality and leverage file. Non-attestation reclassifies the position to Equity Residual (Section~\ref{sec:agg-missing}). The controlled data record sets the refresh requirement.
+
+\subsubsection{FX share-class hedging}
+SIMM FX risk applies only where the share class is not fully hedged to the borrow currency, and the condition is generic: for \emph{any} type whose share-class or base currency differs from the borrow currency, an administrator attestation of the hedge ratio is a \emph{hard eligibility condition} rather than a haircut input. For example, for a daily-dealing bond fund, an unhedged EUR share class adds the SIMM v2.6 FX risk weight on the full published valuation, by itself enough to push a type outside its model limits. For a fund reached through a fund-of-funds wrapper, the attestation covers the whole wrapper stack, since the share-class label does not resolve the realised exposure. Where the look-through of Section~\ref{sec:tax-lookthrough} finds holdings stated outside the borrow currency, their rate and spread sensitivities are recorded on that currency's own curve and the residual currency exposure enters the FX risk class, never merged into the USD vertices, since SIMM's interest-rate buckets are per currency.
+
+\subsubsection{Valuation staleness}
+For a tokenised asset with no traded market the published valuation is the only valuation there is, so no deviation
+between an oracle and a market price exists to charge for. The exposure is age. The asset's value moves between publications, and nobody can trade against an out-of-date publication on
+a transfer-restricted token, so the whole error sits with the deployment. A borrower can draw
+at full LTV against an optimistic published valuation that is one publication out of date.
+
+The layer has two parts. The baseline $\lambda^{\mathrm{base}}_{\mathrm{stale}}$ is a model
+constant set by the practitioner for each type and covers the ordinary age of an on-time
+publication. It remains in force while publication stays within the contractual publication
+cycle. The public worked example uses the illustrative value
+$\lambda^{\mathrm{base}}_{\mathrm{stale}} = 0.5\%$. A type valued by
+appraisal additionally has a fixed smoothing component inside that baseline. An escalation
+$\Delta\lambda^{(a)}_{\mathrm{stale}}$ is added while publication is overdue, so the layer in
+force is $\lambda^{(a)}_{\mathrm{stale}} = \lambda^{\mathrm{base}}_{\mathrm{stale}} +
+\Delta\lambda^{(a)}_{\mathrm{stale}}$.
+
+The escalation is proportional to the volatility implied by the type's published SIMM risk weight:
+\begin{equation}\label{eq:stale}
+\Delta\lambda^{(a)}_{\mathrm{stale}}=\hat\sigma^{(a)}\sqrt{\Delta^{(a)}_{\mathrm{stale}}},
+\qquad
+\hat\sigma^{(a)}=\mathrm{RW}^{(a)}\,\frac{\sqrt{365/14}}{\Phi^{-1}(0.99)},
+\end{equation}
+where $\Delta^{(a)}_{\mathrm{stale}}$ (in years) is the elapsed time since the last official
+publication in excess of the contractual publication cycle plus publication lag, floored at zero, and
+$\mathrm{RW}^{(a)}$ is the type's dominant risk weight. No fitted volatility enters. The
+construction uses the published SIMM risk weight in two steps. $\mathrm{RW}^{(a)}$ is the
+prescribed $99\%$ move over ten business days, so $\mathrm{RW}^{(a)}/\Phi^{-1}(0.99)$ is the standard
+deviation of that move on a Gaussian reading. The factor $\sqrt{365/14}$ then rescales that
+standard deviation from ten business days, read as 14 calendar days, to one year.
+$\hat\sigma^{(a)}$ is therefore an annualised volatility, and
+$\hat\sigma^{(a)}\sqrt{\Delta^{(a)}_{\mathrm{stale}}}$ is the one-standard-deviation move over
+the overdue interval. The Gaussian back-solve and the reading of business days as calendar
+days are recorded as assumption A11.
+
+Charging one standard deviation rather than a second $99\%$ quantile is deliberate. The
+stressed move across one ordinary interval between publications is absorbed by the liquidation
+buffer $\nu^{(a)}$, which covers one adverse publication at the prescribed jump floor
+(Eq.~\eqref{eq:notch-buffer}). Disclosure quality is charged through the due-diligence
+multiplier $\kappa$ instead (Section~\ref{sec:policy-tiers}).
+
+\paragraph{Oracle pipeline integrity ($\lambda_{\mathrm{oracle}}$).} Staleness charges for an \emph{old but trusted} valuation. It does not charge for the risk that a \emph{fresh} one is wrong: a mispublished, single-sourced, unsigned, or manipulated published valuation, the recurring traditional-finance data-pipeline failure. That risk is not spread evenly across the collateral, and the layer $\lambda_{\mathrm{oracle}}^{(a)}$ charges for the difference. $\lambda_{\mathrm{oracle}}^{(a)}$ is set by the asset's \emph{effective} oracle tier, the lower of its configuration tier and the provider-fitness cap. That tier reaches Robust, $\lambda_{\mathrm{oracle}}=0$, only where the feed has source multiplicity, a signed payload, an enforced max-age circuit breaker, and an unaffiliated operator. Single-signed and manual tiers, and issuer-affiliated providers, take a prescribed positive charge.
+
+Where a position is held against a claim on a redemption awaiting settlement, no external feed publishes a value for that claim: it is valued by the deployment's own computation from the last published valuation, so it has neither the source multiplicity nor the signing that earns the Robust tier. That is the case to charge conservatively, and the practitioner sets the effective tier and the charge for a valuation with no independent published feed behind it (free parameter, Appendix~\ref{sec:free-parameters}).
+
+Dual attestation and a configured plausibility check are \emph{tier predicates that earn the Robust tier} ($\lambda_{\mathrm{oracle}}=0$) rather than separately-charged controls. A breach found by that check is monitor-only. It never produces an automatic charge or tier change. Oracle configuration is charged once, in $\lambda_{\mathrm{oracle}}$. Its effect on the transparency score is an eligibility requirement rather than a second charge, and no scorecard score acts on $\lambda_{\mathrm{stale}}$ (Section~\ref{sec:policy-tiers}).
+
+% ==== 3.2 Credit ====
+\subsection{Credit}\label{sec:tax-credit}
+Spread risk already sits in the market-risk core as CreditQ/CreditNonQ delta. The credit factor charges for what spread delta cannot see: jump-to-default and rating migration (legal structure is screened at eligibility rather than charged).
+
+\subsubsection{Default add-on (private credit only)}
+FRTB pairs the sensitivity charge with a default risk charge for exactly this reason, and the framework mirrors that pairing as an additive layer:
+\begin{equation}\label{eq:drc}
+\lambda^{(a)}_{\mathrm{def}}=\mathrm{PD}\bigl(r^{(a)},\,\mathrm{LH}^{(a)}\bigr)\times\mathrm{LGD}^{(a)},
+\end{equation}
+with PD taken from rating-agency cohort default tables at rating $r^{(a)}$, horizon-scaled to the clearing window $\mathrm{LH}^{(a)}$ \eqref{eq:mpor-eff}, and LGD from published senior-secured recovery tables rather than from CDS, which do not trade on these issuers. Senior private credit admits unrated borrowers, so $r^{(a)}$ is resolved by a prescribed proxy hierarchy rather than omitted: an issuer or facility rating from a nationally recognized statistical rating organization where one exists, else a manager internal rating corroborated by an independent party (auditor or administrator), else the prescribed unrated-sector PD floor. Eq.~\eqref{eq:rating-hierarchy} states that hierarchy as the definition of $r^{(a)}$:
+\begin{equation}\label{eq:rating-hierarchy}
+r^{(a)} =
+\begin{cases}
+r_{\mathrm{agency}} & \substack{\text{a nationally recognized statistical rating organization}\\
+\text{rates the issuer or facility,}}\\[4pt]
+\min\bigl(r_{\mathrm{int}}-1\ \text{grade},\ \text{BB}+\bigr) & \text{else a corroborated internal rating exists,}\\[4pt]
+r_{\mathrm{floor}} & \text{else,}
+\end{cases}
+\end{equation}
+where grades are ordered by credit quality and $\min$ returns the weaker of the two. A corroborated internal rating therefore resolves at BB$+$ or weaker, and no internal rating resolves to investment grade.
+
+The internal rating $r_{\mathrm{int}}$ is produced by the controlled look-through scorecard over the credit dimensions of the due-diligence questionnaire: portfolio-weighted leverage, interest cover, seniority, collateralisation, and delinquency. The scorecard output is expressed on the agency scale. A corroborated internal rating is reduced by one grade because the manager of the collateral produced it. The practitioner sets the floor grade $r_{\mathrm{floor}}$ as a model constant. The window dependence then follows from Eq.~\eqref{eq:pd-horizon} and the seniority dependence sits in LGD rather than in PD. The floor is weaker than the BB$+$ cap, so weaker evidence never produces a better parameter than stronger evidence.
+
+The horizon scaling of Eq.~\eqref{eq:drc} is the survival form of a constant default intensity:
+\begin{equation}\label{eq:pd-horizon}
+\mathrm{PD}\bigl(r,\mathrm{LH}\bigr) = 1-\bigl(1-\mathrm{PD}_1(r)\bigr)^{\mathrm{LH}/252},
+\end{equation}
+where $\mathrm{PD}_1(r)$ is the published one-year cohort default rate at grade $r$ and 252 is the business-day year. At every window shorter than a year the scaled $\mathrm{PD}$ sits slightly above the linear pro-rata value $\mathrm{PD}_1(r)\cdot\mathrm{LH}/252$, because $1-(1-p)^t$ is concave in $t$ and agrees with the linear value at $t=0$ and $t=1$. That is the conservative direction. Where the governing clearing window reaches a year, $\mathrm{PD}$ is read from a multi-year cohort column instead.
+
+Default clustering is the one direction in which the form understates default risk. Defaults arrive in stressed cohorts rather than at a constant rate, so a window inside a stressed year contains more default risk than a constant intensity implies. The one-grade reduction on corroborated internal ratings and the floor grade are the prescribed offsets against that. The scaling assumption and that caveat are recorded as assumption A13 of the assumptions addendum.
+
+$\mathrm{LGD}^{(a)}$ is read from a published senior-secured recovery table keyed to attested seniority. Where seniority is unattested the table cannot be keyed, and LGD is floored at the prescribed LGD values of the FRTB default risk charge: 75\% for senior debt and 100\% for non-senior debt or an equity instrument (MAR22.12) \citep{bcbs_frtb_d457}. In that case the claim takes the non-senior value, $100\%$, because a floor
+takes the worst admissible reading rather than the more favourable one. The prescribed value
+replaces the recovery-table value rather than averaging with it. The unattested-seniority
+floor is the prescribed non-senior value of $100\%$.
+
+Where no admissible rating and no seniority attestation can be obtained, Eq.~\eqref{eq:drc} cannot be parameterised from evidence, and the framework prescribes the outcome. The default add-on takes the floor grade and the LGD floor, $\lambda^{(a)}_{\mathrm{def}} = \mathrm{PD}\bigl(r_{\mathrm{floor}},\mathrm{LH}^{(a)}\bigr)\times\mathrm{LGD}_{\mathrm{floor}}$, and the asset is capped at the practitioner's lowest eligible tier (Section~\ref{sec:policy-tiers}). Both consequences apply automatically once the evidence is absent, in the same way as every other missing input (Section~\ref{sec:agg-missing}).
+
+The model constant set by the practitioner for each type is a floor on the derived value:
+\begin{equation}\label{eq:def-floor}
+\lambda^{(a)}_{\mathrm{def}} = \max\Bigl(\mathrm{PD}\bigl(r^{(a)},\mathrm{LH}^{(a)}\bigr)\times\mathrm{LGD}^{(a)},\ \lambda^{\mathrm{floor}}_{\mathrm{def}}\Bigr),
+\end{equation}
+where $\lambda^{\mathrm{floor}}_{\mathrm{def}}$ is the model constant set by the practitioner for the type. The layer takes a positive value within the private-credit layer stack and is identically zero elsewhere. The collateral types assign every other default tail elsewhere. A short-duration or investment-grade tail is negligible at these horizons, a securitised tail is charged through its non-qualifying risk weight plus the rating guardrail below, and a leveraged-fund tail through its fund-unit risk weight plus the leverage add-on (Section~\ref{sec:tax-ops}). An event-linked tail is charged through the named event-risk layer, a deliberate choice over a PD$\times$LGD add-on, since the instrument's default \emph{is} the insured event.
+
+\subsubsection{Event risk}
+Some collateral has a dominant loss that arrives as a jump with no SIMM risk factor behind it,
+an insurance catastrophe event being the standard case. The probability of such a jump grows
+roughly linearly in exposure time, and its severity does not diminish as the horizon shortens.
+Neither the margin over ten business days nor the square-root-of-time extension of
+Eq.~\eqref{eq:m-scaling} holds that shape, so the charge sits in the named event layer
+$\lambda_{\mathrm{event}}^{(a)}$ instead.
+
+The layer is set from attestable model documents rather than fitted. It takes the larger of
+the attested $99\%$ annual-aggregate modelled valuation loss and the largest attested modelled
+single-event valuation impact, both read from the manager's event-model file. Where the file
+is unattested or uncorroborated the layer takes a prescribed conservative floor. Where the
+collateral type assigns its dominant loss to this layer, the default add-on of
+Eq.~\eqref{eq:def-floor} is zero for that type.
+
+\subsubsection{Structure requirement}
+Bankruptcy remoteness, segregated custody, independent administrator and auditor, and enforceable redemption rights are scored as the legal-structure and governance dimensions of the due-diligence scorecard. The structure score \emph{screens eligibility} rather than feeding the haircut. The resulting tier applies a multiplier to the limits for new exposure (illustratively Prime $1.00$, Standard $0.90$, Restricted $0.75$). The tier acts on the over-collateralisation cushion only (Section~\ref{sec:policy-tiers}). Eligibility failures (legal-core gaps, unresolved redemption gates, material restatements, live sanctions or material enforcement, single-key control, bad-faith refusal, and unrecovered exploits) precede scoring. An asset with a bridge or cross-chain dependence sits outside the framework's scope and is not scored at all. The conditional failures reject only the \emph{unmitigated} state, while live sanctions reject in every state.
+
+\subsubsection{Look-through from fund documents, and rating guardrails}\label{sec:tax-lookthrough}
+The sensitivities SIMM consumes are derived by look-through from the issuer's own documents wherever no attested sensitivities file exists. Where the asset is a feeder token, the same reading runs through to the master fund: the practitioner reads the master's offering memorandum and investment limits, its current factsheet, and its latest administrator or trustee report, and the master's administrator is the attesting party for the master-level legs. For a credit-routed type that reading also fixes the CreditQ bucket assignment. From the issuer's own documents the practitioner states approximate holdings: portfolio size, the stated sector and seniority mix, the stated term or weighted-average life, whether coupons float, and the reset frequency. Each holding group is assigned its SIMM risk factors from those facts, an interest-rate vertex from its stated reset or life, a CreditQ bucket from its stated quality and sector, and a CS01 from spread duration times composition weight. The weighted sensitivities of Eq.~\eqref{eq:agg-ws} and the published aggregation then give the approximate exposure the margin charges.
+
+The same procedure produces the sensitivity inputs of every type whose margin routes through the interest-rate and credit risk classes. The fund-unit types take their margin input from the fund-unit delta instead (Section~\ref{sec:fund-unit}).
+
+\paragraph{Inferred sensitivities and the recorded reason.} Where the administrator delivers a DV01 or a CS01, the delivered figure is used. Where it does not, the sensitivity is inferred, and the inference is recorded with the document line it rests on and the reason for the reading taken. An attested 90-day revolving portfolio is the standing example. A 90-day revolving term is short-dated credit exposure, so the spread sensitivity is recorded at the shortest SIMM credit vertex and the rate sensitivity at the reset vertex. Documented extension or amendment practice that keeps facilities outstanding for years displaces that reading and moves the sensitivity to a longer vertex.
+
+Every inferred input takes a conservative proxy that bounds the attested figure from above under the SIMM bucket-assignment rules of Section~\ref{sec:tax-simm-assignment}. An inference can therefore lower the permitted LTV and never lowers the haircut. The practitioner sets the standard each inference is held to, which readings are admissible, and what displaces a reading already recorded (free parameter, Appendix~\ref{sec:free-parameters}).
+
+\paragraph{Replacement of inferred inputs.} Delivered evidence replaces conservative proxies input by input. A delivered sector tag takes its own bucket, while any untagged remainder keeps its recorded proxy. The framework restores the recorded proxy when a tag becomes stale. An exposure the documents leave unclassifiable falls to Residual at full marginal cost (Section~\ref{sec:agg-missing}).
+
+\paragraph{Rating guardrails (securitised collateral).} The actions a loss of investment grade forces, the evidence that confirms the loss, and the observation window it is measured over are stated in Section~\ref{sec:policy-guardrails}. For a fund type holding rated securitised sleeves the same guardrail applies per sleeve: a lapsed sleeve rating attestation drops that sleeve to Residual, and \emph{confirmed} loss of investment grade on a sleeve reassigns it to CreditNonQ bucket~2 with the identical mechanics at escalation levels 3 and 4.
+
+% ==== 3.3 Redemption liquidity ====
+\subsection{Redemption liquidity}\label{sec:tax-redemption}
+The exit is contractual: redemption from the issuer, not a sale into a market. Liquidity risk on this universe is the risk that the redemption process \emph{lengthens} (notice periods, queues, partial fills) or \emph{narrows} (gates, suspensions), and that positions outgrow attested capacity. Every input is read from offering documents or attested transfer-agent data at existing reporting frequency. Nothing is fitted.
+
+\subsubsection{The clearing window and the clearing discount}
+When liquidation begins at $\mathrm{LTV}=\theta^{(a)}$, the position is held through the clearing
+window to cash. The window is $\mathrm{LH}^{(a)}$ of Eq.~\eqref{eq:mpor-eff}, the worst-case
+wait to the next submission deadline plus the attested notice, dealing, and settlement legs,
+fixed by the three-source hierarchy of Section~\ref{sec:theory:setting}.
+
+The window sets the day-one value of the clearing discount $\delta_{\mathrm{clear}}^{(a)}$ of
+Eq.~\eqref{eq:m-scaling}, an \emph{additive haircut component sitting above the liquidation
+threshold} rather than a gap below it. The practitioner calculates each listing's day-one
+values from its attested terms (Section~\ref{sec:theory:setting}).
+
+Listing requires no committed settlement level beyond the subscription documents' own
+terms. A documented or attested committed settlement level bounds the borrow cap through the
+committed-settlement term of Eq.~\eqref{eq:queue}. It also shortens $\mathrm{LH}^{(a)}$
+(Eq.~\eqref{eq:mpor-eff}), a reduction earned by evidence against the floor state in which
+no party stands ready at the moment of need (Section~\ref{sec:warehouse-ops}).
+
+\subsubsection{Gating and suspension provisions}
+Gate thresholds (\% of the published valuation per dealing date), suspension discretion, side-pocket rights, and holdbacks are extracted from offering memoranda and assigned to the gating and suspension layer $\lambda_{\mathrm{gate}}$. The dominant tail of lending against a published valuation is that funds gate exactly when the deployment needs to redeem, and no SIMM risk factor can charge for it. A \emph{live, unresolved, or disorderly} gate, suspension, or side-pocket is an eligibility failure. A \emph{resolved, as-designed} pro-rata gate that made investors whole is not (it caps the redemption-firmness dimension of the practitioner's scorecard).
+
+\subsubsection{Queue and pro-rata mechanics}
+Where the offering documents provide pro-rata scale-back, gated redemptions fill pro-rata rather than first-come-first-served, and partial fills roll the unfilled balance into subsequent dealing windows and lengthen the \emph{realised} clearing window beyond the contractual one. Transfer agents report queue depth and gate utilisation. Sustained utilisation lengthens the realised $\mathrm{LH}^{(a)}$, recomputes the clearing discount \eqref{eq:m-scaling} on that window, and escalates per the gating guardrail.
+
+\subsubsection{Attested redemption capacity, concentration, and caps}
+The single governing capacity number is $R^{(a)}_{\mathrm{cap}}$, the redemption capacity per dealing window, attested by the issuer or transfer agent. It re-keys the SIMM concentration threshold, the dealer-market $T_b$ replaced by $T^{(a)}=R^{(a)}_{\mathrm{cap}}$ in the functional form of Eq.~\eqref{eq:agg-cr}, so haircuts steepen automatically as a position outgrows its exit route. Both caps follow from the same number in closed form (Eq.~\eqref{eq:theory-caps}). One dealing window clears the pool's entire debt at the point of liquidation, and the largest single borrower's debt is monitored against the same capacity number. Capacity is the named exception to the rule that missing inputs take prescribed floors, never zero (Section~\ref{sec:agg-missing}), because it is risk-decreasing. A missing or expired capacity input sets $R_{\mathrm{cap}}^{(a)}=0$, which sets both caps to zero. Controlled operational records hold the attestation schedule and launch requirements.
+
+\subsubsection{Coverage ratio}
+The running guardrail against aggregate exit demand is
+\begin{equation}\label{eq:covr}
+\mathrm{CovR}^{(a)}=\frac{R^{(a)}_{\mathrm{cap}}}{\sum_{e}B^{(a)}_{e}},
+\end{equation}
+aggregate borrows against one window of attested capacity, computed per asset and additionally aggregated across deployments sharing an issuer or administrator. This is the systemic check on simultaneous exit demand: demand is bounded ex ante by \eqref{eq:theory-caps} and monitored ex post here. The exit does not run through a venue whose depth could move against it (Section~\ref{sec:theory:capacity}). $\mathrm{CovR}^{(a)}<1$ forces escalation level 2 (Section~\ref{sec:operations}): new-borrow $\ell_{\max}$ cut and the supply cap stepped down, with precautionary partial redemptions to restore coverage.
+
+% ==== 3.4 Operational and wrong-way ====
+\subsection{Operational and wrong-way risk}\label{sec:tax-ops}
+
+\subsubsection{Wrapper and transfer-agent risk}
+The token is a permissioned wrapper around fund shares: mint/burn authority, upgrade keys, allowlist administration, and custody of privileged roles are scored through the operational-security and custody dimensions of the due-diligence scorecard, with the residual held in the named manager/operational layer $\lambda_{\mathrm{ops}}$. For a short-duration type the layer stack can dominate the haircut, and the named decomposition keeps that attribution visible rather than mislabelling it as SIMM-derived market risk. Where listed assets share one tokenisation platform, a shared-service-provider concentration guardrail is monitored across listed collateral sets (Section~\ref{sec:policy-guardrails}).
+
+\subsubsection{Manager and valuation-process risk}
+Administrator and auditor independence, the valuation verification process, restatement history, key-person provisions, and (for leveraged fund types) attested leverage versus policy are scored in the governance dimension. The governance score charges for the quality of that evidence through the due-diligence multiplier $\kappa$. The layers $\lambda_{\mathrm{ops}}$ and $\lambda_{\mathrm{stale}}$ charge for the structural failure modes per type and retain their assigned values whatever the scorecard awards. A dimension drives $\kappa$ through the score or a named layer, never both. A leveraged fund type additionally takes the leverage add-on $\lambda_{\mathrm{lev}}$, charged per turn of attested leverage above the policy level, from the administrator-signed evidence file required by the treatment.
+
+\subsubsection{Wrong-way flags}
+A wrong-way flag designates collateral whose stress co-realises with borrow-side stress, adding the assigned layer $\lambda_{\mathrm{ww}}$. The clearest examples are private-credit pools whose underlying borrowers are crypto market-makers or prime brokers, whose defaults cluster with stablecoin stress, and market-neutral funds running basis strategies whose drawdowns coincide with crypto funding stress. A flag requires a documented co-realisation mechanism, and a type with none takes no flag. An intra-type coincidence between a fund's own gate and its loss event is charged in the gating layer rather than as a cross-market flag. The stablecoin peg monitor runs on the borrow side only (USD-cash policy). Peg stress that coincides with wrong-way-flagged collateral requires a more conservative intervention.
+
+% ==== 3.5 Deliberate omissions ====
+\subsection{Deliberate omissions}\label{sec:taxonomy-omitted}
+The following metrics are omitted because they rely on observables that the methodology does not assume for collateral that exits by redemption. Price-impact slope measures and depth-based liquidity coverage require an order book or automated-market-maker depth series. Gas-breakeven and inclusion-failure probabilities require a public liquidation race, which sits outside the model's settlement assumptions. Fire-sale multipliers, price-feedback coefficients, and depth-decay coefficients require liquidation-event and market-maker-depth series, which sit outside the required public inputs. High-confidence CoVaR (co-value-at-risk) requires a tail sample, while roughly twelve appraisal-smoothed observations a year cannot identify one. The model charges for these risks through other terms. The stressed SIMM risk weights, concentration risk factor, and clearing discount reserve for the cost of clearing a position of size under stress. The prescribed SIMM correlations ($\rho$, $\gamma$, $\psi$) and shared-issuer or administrator grouping of the coverage check account for cross-asset dependence.

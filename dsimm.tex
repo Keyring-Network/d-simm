@@ -1,0 +1,70 @@
+\documentclass[11pt]{article}
+
+% ========== Packages ==========
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs,array}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{adjustbox}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage{titlesec}
+\usepackage{colortbl,xcolor}
+\usepackage{rotating}
+\usepackage{tabularx}
+\usepackage{threeparttable}
+\usepackage{pdflscape}
+\usepackage{longtable}
+\usepackage[numbers,square,sort&compress]{natbib}
+
+% ========== Formatting ==========
+\setlist{noitemsep,topsep=2pt}
+% last-resort line stretch so residual prose lines never run into the margin
+\setlength{\emergencystretch}{3em}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=blue,
+  citecolor=black
+}
+\titleformat{\section}{\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{0.6em}{}
+
+% ========== Title ==========
+\title{D-SIMM: deterministic margin limits for decentralised lending}
+\author{Alexander McFarlane}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\input{01abstract}
+\noindent\textbf{Acknowledgements:}
+The author thanks Sebastien Guglietta for useful discussions. Particular thanks go to Sahil Gujrati for proofreading earlier drafts and identifying numerous errors.
+
+\input{02overview}
+\input{03theoretical_framework}
+\input{04taxonomy}
+\input{05normalisation}
+\input{06policy_mapping}
+\input{07efficacy}
+
+% Appendices
+\appendix
+\titleformat{\section}{\large\bfseries}{Appendix~\thesection:}{0.6em}{}
+% Each appendix is extensive; start every one on a fresh page (\clearpage also
+% flushes any pending floats from the preceding appendix's tables).
+\clearpage\input{appendices/09free_parameters}
+\clearpage\input{appendices/03symbols}
+
+% ==================
+% Bibliography
+% ==================
+\newpage
+\bibliographystyle{IEEEtran}
+\bibliography{bib/references}
+
+\end{document}
