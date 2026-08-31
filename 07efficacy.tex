@@ -1,0 +1,141 @@
+% ==================
+% 6) REDEMPTION EXECUTION & FEASIBILITY
+% ==================
+\section{Redemption execution and feasibility}\label{sec:efficacy}
+
+A position in liquidation exits only through the issuer's own subscription and redemption
+process at the published valuation. Any on-chain secondary market is out of scope for this version, and an asset with a bridge or cross-chain dependence sits outside the framework's scope altogether (Section~\ref{sec:overview-channel}). The position is warehoused through the clearing window instead: it is held from
+the breach to cash settlement, over the clearing window $\mathrm{LH}^{(a)}$
+of Eq.~\eqref{eq:mpor-eff}. The framework reserves
+the discount that compensates whoever clears the position, and it does not prescribe the
+clearing mechanism. The holder is the deployment or an entity it designates rather than an
+outside counterparty standing ready at the moment of need
+(Appendix~\ref{sec:free-parameters}).
+
+The discount is bounded by the haircut less its layer total. Liquidation
+begins when a position's loan-to-value ratio reaches $\theta^{(a)}$. The
+over-collateralisation cushion above the liquidation threshold is
+therefore $1-\theta^{(a)} \ge H^{(a)} = \mathrm{IM}^{(a)} +
+\delta_{\mathrm{clear}}^{(a)} + \delta_{\mathrm{carry}}^{(a)} + \Lambda^{(a)}$ (equality at the
+Prime tier), and whatever discount compensates the clearing party is paid out of it:
+\begin{equation}\label{eq:clearing-solvency}
+\mathrm{discount} \;\le\; \mathrm{IM}^{(a)} + \delta_{\mathrm{clear}}^{(a)} + \delta_{\mathrm{carry}}^{(a)}
+\;=\; H^{(a)} - \Lambda^{(a)} \;\le\; H^{(a)} .
+\end{equation}
+The bound is non-negative at every admissible
+window (Section~\ref{sec:theory:limits}). Whether a party clears at that reserved
+level is a stated assumption of the framework (assumption A17 of the assumptions addendum).
+The clearing discount is reserved rather than fitted to the valuation history.
+
+\subsection{Redemption capacity}\label{sec:redemption_capacity}
+
+\subsubsection{Issuer capacity and committed settlement}
+The redemption capacity of collateral $a$ over one dealing window is
+\begin{equation}\label{eq:qcapred}
+Q_{\mathrm{cap,red}}^{(a)} \;=\; \min\!\left\{\, Q_{\mathrm{issuer}}^{(a)},\ Q_{\mathrm{queue}}^{(a)} \,\right\},
+\qquad
+Q_{\mathrm{issuer}}^{(a)} \;=\; R_{\mathrm{cap}}^{(a)},
+\end{equation}
+where $R_{\mathrm{cap}}^{(a)}$ is the issuer's attested per-window redemption capacity
+(USD), obtained from the issuer or transfer agent, used as the one-window
+capacity consistently with the caps, the concentration threshold $T$, and the coverage
+ratio (Section~\ref{sec:theory:capacity}). The normalisation of attested capacity onto
+the dealing window is part of the definition of $R_{\mathrm{cap}}^{(a)}$ there. For an
+evergreen fund dealing monthly under a hard quarterly redemption gate the question
+inverts structurally. The gate rather than the dealing calendar sets what one window can clear, so the gate window is the governing dealing window, and the window-normalisation rule of Section~\ref{sec:theory:capacity} is met on that basis. $Q_{\mathrm{queue}}^{(a)}$ is specified from the issuer's own documents, the subscription documents together with the offering memorandum's gate and dealing provisions, rather than estimated
+from market data.
+
+\subsubsection{The two endpoints of queue capacity}
+Feasibility turns on the worst credible recovery in a saturated window, and
+that recovery has exactly two endpoints.\footnote{Full derivation. Let $g^{(a)}$ be the
+documented gate fraction per dealing window, $A^{(a)}$ the fund AUM, $q_L$ the redemption
+request submitted for the position in liquidation, and $q_O^{*}$ the stressed concurrent
+third-party demand. The window fills $\min\{q_L+q_O^{*},\,g^{(a)}A^{(a)}\}$, and under
+documented allocation the recovery on $q_L$ is
+$Q_{\mathrm{queue}}^{(a)} = q_L\cdot\min\{1,\,g^{(a)}A^{(a)}/(q_L+q_O^{*})\}$
+(pro-rata) or
+$Q_{\mathrm{queue}}^{(a)} = \min\{q_L,\,\max(0,\,g^{(a)}A^{(a)}-q_O^{*})\}$
+(first-come-first-served, with $q_L$ at the back of the queue). The stress input
+$q_O^{*}$ is prescribed: the largest
+attested historical window demand where the transfer agent reports queue depth and
+gate utilisation, else the conservative floor
+$q_O^{*}=g^{(a)}A^{(a)}$ (a fully subscribed window) where unattested, consistent
+with the missing-data rule of Section~\ref{sec:agg-missing}.}
+\begin{equation}\label{eq:queue}
+Q_{\mathrm{queue}}^{(a)} \;=\;
+\begin{cases}
+\, 0
+  & \parbox[t]{0.5\linewidth}{\raggedright the subscription documents commit to no measurable within-window processing level, so within-window processing is not guaranteed and the conservative saturated-window floor applies,}\\[0.6em]
+\, \ge \; q_L^{\mathrm{committed}}
+  & \parbox[t]{0.5\linewidth}{\raggedright a documented or attested committed settlement level guaranteeing processing within the window.}
+\end{cases}
+\end{equation}
+The committed-settlement term defaults to the within-window processing level committed in
+the issuer's subscription documents. That level is read case by case per listing, since
+those terms vary from one issuer to the next. A higher attested committed settlement
+level is recognised where one exists.
+
+The borrow cap is zero on the first branch of Eq.~\eqref{eq:queue}, so the
+asset can be listed and cannot be borrowed against, and the launch ramp of
+Section~\ref{sec:policy-caps} applies only once the committed-settlement term is positive.
+On the second branch, $Q_{\mathrm{queue}}^{(a)}$ is bounded
+below by the committed settlement level $q_L^{\mathrm{committed}}$, and the check passes
+only where that level covers the borrow cap. The same evidence shortens the clearing window
+$\mathrm{LH}^{(a)}$ of Eq.~\eqref{eq:mpor-eff}, and neither reduction is a condition of
+listing. Documented pro-rata terms do not by themselves establish a guaranteed
+within-window clear. They feed the stressed realised $\mathrm{LH}^{(a)}$ and the
+clearing-discount reserve (Eq.~\eqref{eq:m-scaling}, Section~\ref{sec:tax-redemption})
+rather than a positive committed-settlement term.
+
+\subsubsection{Clearing window per collateral}
+The clearing window $\mathrm{LH}^{(a)}$ over which the position is warehoused is the
+window of Eq.~\eqref{eq:mpor-eff}, fixed by the three-source hierarchy of
+Section~\ref{sec:theory:setting}. It is the same
+quantity on which $\delta_{\mathrm{clear}}^{(a)}$ is built (Section~\ref{sec:theory}).
+
+An attested $\mathrm{LH}$, and the $\delta_{\mathrm{clear}}$ and liquidation threshold
+derived from it, hold only while the attested terms behind the governing window remain in
+force. When they
+lapse, the next source in the hierarchy of Eq.~\eqref{eq:mpor-eff} governs and the limits
+of Section~\ref{sec:policy} re-derive accordingly.
+
+\subsection{Feasibility condition}\label{sec:feasibility}
+The sole capacity check of the framework is that the largest permissible
+debt position exits within one dealing window:
+\begin{equation}\label{eq:feasibility}
+B_{\max}^{(a)} \;\le\; Q_{\mathrm{cap,red}}^{(a)}
+\qquad \text{over } \mathrm{LH}^{(a)},
+\end{equation}
+with $q_L = B_{\max}^{(a)}$ in Eq.~\eqref{eq:queue}. The prescribed stress is the
+pool's entire debt at the borrow cap, measured at the point of liquidation, clearing one
+window with the whole position redeemed. The interest accruing over that window is reserved
+separately by $\delta_{\mathrm{carry}}^{(a)}$. Only the debt amount must clear the window, since the proceeds of the issuer
+redemption are applied to the debt first. Any collateral above the repaid debt
+queues into the following window at the borrower's risk rather than the
+suppliers'. Since Section~\ref{sec:policy} sets
+$B_{\max}^{(a)} \le R_{\mathrm{cap}}^{(a)}$ by construction, the issuer capacity term of
+Eq.~\eqref{eq:qcapred} holds automatically. The operative content of
+Eq.~\eqref{eq:feasibility} is the committed-settlement term, which by Eq.~\eqref{eq:queue} reduces to
+the documented committed settlement level.
+
+The check is computed in one pass, in one direction: the caps from Section~\ref{sec:policy} feed
+in, Eq.~\eqref{eq:feasibility} either passes or fails, with no iteration
+back into the haircut. The check uses the current attested inputs. If the condition fails, limits must tighten:
+$B_{\max}^{(a)}$ and $S_{\max}^{(a)}$ are
+reduced until Eq.~\eqref{eq:feasibility} passes. Where debt can be attributed to entities, the horizon for the largest single debt is $\lceil B_{(1)}^{(a)}/R_{\mathrm{cap}}^{(a)}\rceil$ windows, and under the supply cap alone a full redemption completes within $M$ windows (Section~\ref{sec:theory:capacity}).
+
+\subsection{Settlement evidence and model consequences}\label{sec:warehouse-ops}
+Every parameter in this section is set on the floor state: no measurable committed
+settlement level in the subscription documents, no clearing history, and no party standing
+ready at the moment of need. Qualifying settlement evidence earns a practitioner-set reduction against that floor (free parameter, Appendix~\ref{sec:free-parameters}). The model recognises three forms of evidence and one live control:
+\begin{enumerate}[label=(\roman*),itemsep=1pt]
+\item \textbf{The committed settlement level.} The subscription documents of a listed
+collateral give the processing level committed within the window.
+\item \textbf{Test redemptions.} A completed test corroborates the attested $\mathrm{LH}^{(a)}$. A failed test, or one that settles beyond the attested window, widens it to the documented worst case. The operations companion specifies the test procedure.
+\item \textbf{Settlement records.} A realised window longer than the attested one widens $\mathrm{LH}^{(a)}$ and raises the clearing-discount
+reserve of Eq.~\eqref{eq:m-scaling}. That record can only tighten the parameters.
+\item \textbf{Rate limit on queue saturation.} Queue saturation or issuer processing delays trigger a rate limit on new borrows. The operations companion specifies the release procedure (Section~\ref{sec:operations}).
+\end{enumerate}
+
+\subsubsection{Redemption timing evidence}\label{sec:redemption-ops}
+Redemption evidence compares the realised time from notice to settlement with the attested window. An overrun widens $\mathrm{LH}^{(a)}$ under item~(iii) above. The operations companion specifies the notice, reconciliation, and recordkeeping procedures (Section~\ref{sec:operations}).

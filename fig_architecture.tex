@@ -1,0 +1,52 @@
+% ==================
+% Figure: architecture of D-SIMM.
+%
+% Composition: the calculation runs left to right across the top, unbroken.
+% The two things that govern it from outside sit underneath its two ends and
+% point up into it, the due-diligence screen at the entry and the monitor at
+% the on-chain output. Nothing else is drawn.
+%
+% Spacing: 4mm grid. 2mm box padding (half unit), 12mm vertical separation
+% between the calculation and what governs it (3 units), 16mm between stages
+% (4 units), calculation boxes 12mm tall (3 units), the other two 8mm (2 units).
+%
+% Ink: one accent for the calculation, one neutral grey for what sits outside
+% it. Solid for the single pass, dashed for a later valuation cycle. One stroke
+% weight, one arrowhead. Natural size, no scaling, so the figure's type matches
+% the body type. For a monochrome figure, set dsAccent to black and dsMuted to
+% black!58; every distinction above survives it.
+% ==================
+\begin{figure}[ht]
+\centering
+\definecolor{dsAccent}{HTML}{15546F}
+\definecolor{dsMuted}{HTML}{4A5157}
+\begin{tikzpicture}[
+  font=\small,
+  >={Stealth[length=1.5mm,width=1.2mm]},
+  line width=0.55pt,
+  every node/.style={inner xsep=2.2mm, inner ysep=1.6mm, align=left},
+  pass/.style={draw=dsAccent, fill=dsAccent!8, minimum height=12mm},
+  aside/.style={draw=dsMuted, minimum height=8mm},
+  flow/.style={->, draw=dsAccent},
+  back/.style={->, draw=dsMuted, dash pattern=on 1.3mm off 1.0mm},
+  lab/.style={font=\footnotesize, text=dsMuted, inner xsep=1.1mm, inner ysep=0.8mm},
+]
+  % the pass, left to right
+  \node[pass]                    (in)  {Attested terms\\Published risk weights};
+  \node[pass, right=16mm of in]  (eng) {D-SIMM haircut engine};
+  \node[pass, right=16mm of eng] (lim) {On-chain limits\\$\theta,\ \ell_{\max}$, caps};
+
+  % what governs the pass from outside it
+  \node[aside, below=12mm of in] (dd)  {Due diligence};
+  \node[aside] (mon) at (dd -| lim)    {Monitoring};
+
+  \draw[flow] (in)  -- (eng);
+  \draw[flow] (eng) -- node[lab, above] {$H$} (lim);
+  \draw[flow] (dd)  -- node[lab, right] {admit or reject} (in);
+  \draw[back] (mon) -- node[lab, left]  {reduces limits} (lim);
+\end{tikzpicture}
+\caption{Attested terms and published risk weights feed the D-SIMM haircut
+engine. The haircut $H$ sets the active on-chain limits with no iteration. Due
+diligence admits or rejects an asset, and monitoring can only reduce those limits.}
+\label{fig:architecture}
+\end{figure}

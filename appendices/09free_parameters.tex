@@ -1,0 +1,29 @@
+% ==================
+% APPENDIX: FREE PARAMETERS
+% ==================
+\section{Free parameters}\label{sec:free-parameters}
+
+This appendix lists the open model quantities that enter the calculation or constrain its on-chain outputs. A model constant is a value that the practitioner sets outside the calculation and supplies to it as a fixed input. Active LTV, LLTV, and cap values are visible in the deployed market configuration. Operational and validation records remain controlled.
+
+Every open model quantity follows the constraints stated here. A practitioner may tighten an active on-chain limit at any time. A loosening requires a documented decision on current evidence. The overdue-publication adjustment in Eq.~\eqref{eq:stale} reverses automatically when its public input recovers, as the published equation requires.
+
+\paragraph{Clearing window $\mathrm{LH}$.}
+The source hierarchy is fixed by Section~\ref{sec:theory:setting}. The practitioner sets a fallback horizon where the cited standard provides no natural horizon for the class. The clearing window satisfies $\mathrm{LH}\ge 1$ business day, and the FRTB fallback constants remain those of the cited standard~\cite{bcbs_frtb_d457}. Less certain settlement terms justify a longer window.
+
+\paragraph{Clearing discount $\delta_{\mathrm{clear}}$.}
+The value is fixed at $\mathrm{IM}\bigl(\sqrt{\mathrm{LH}/10}-1\bigr)$, a charge for a window beyond ten business days and a margin credit for a shorter one. Only contractually enforceable legs support a margin credit. The controlled validation record fixes $N_{\mathrm{obs}}$, the observation quantile, the look-back period, and the diversity requirement. The total price-risk charge $\mathrm{IM}+\delta_{\mathrm{clear}}$ remains at least $\mathrm{IM}\sqrt{\mathrm{LH}/10}$.
+
+\paragraph{Additive layers $\lambda_j$.}
+The layer slots are fixed by Section~\ref{sec:theory:layers}. The practitioner sets each non-negative model constant. Each derived layer takes its inputs from its stated source. The cited public standards supply each prescribed value.
+
+\paragraph{Tier multiplier $\kappa$.}
+The multiplier for each due-diligence tier is a model constant set by the practitioner. Any concentration penalty attached to a tier is also a model constant set by the practitioner. The multiplier satisfies $\kappa \in (0,1]$, with the top tier at $1$. The model assigns each due-diligence dimension to exactly one of $\kappa$ and a named layer.
+
+\paragraph{Liquidation buffer $\nu$.}
+The practitioner sets $\nu$ as a model constant for each listing. The stressed-jump floor $q_p(J)$ and its quantile level $p$ are model constants set by the practitioner. The liquidation buffer remains between 4 and 8 percentage points and must satisfy Eq.~\eqref{eq:notch-buffer}.
+
+\paragraph{Capacity and caps.}
+The practitioner sets the supply-cap multiple $M$. It is an integer of at least $1$ and bounds the concentration risk factor at $\mathrm{CR}\le\sqrt{M}$. The cap equations of Section~\ref{sec:policy-caps} constrain every active value. The deployed market configuration records the current borrow and supply caps.
+
+\paragraph{Insurance credit.}
+The practitioner sets the recognition factor $\beta_j$, the floor fraction $\phi_j$, the minimum insurer rating, and the aggregate cap on insurance credit. These four quantities are model constants. The recognition factor satisfies $\beta_j\in[0,1]$. The reduced layer remains at least $\phi_j\lambda_j$, and $\beta_j=0$ until the practitioner activates the credit.
