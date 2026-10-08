@@ -17,7 +17,7 @@ framework sets them, and each one is enumerated as a free parameter
 Five risk classes are in scope: Interest Rate (IR), Qualifying Credit (CreditQ),
 Non-Qualifying Credit (CreditNonQ), Equity, and FX. Commodity is unused. The scope is delta
 margin only. Section~\ref{sec:tax-market} records why a linear, long-only holding of fund
-units attracts neither vega nor curvature margin under SIMM \P\,9. It also records what the
+units or ordinary shares attracts neither vega nor curvature margin under SIMM \P\,9. It also records what the
 framework substitutes where prepayment optionality is embedded, and why base correlation
 never enters.
 
@@ -27,15 +27,13 @@ pipeline is computed in one direction with no circular dependency
 (Section~\ref{sec:theory:capacity}).
 
 \subsection{Weighted sensitivities and concentration}\label{sec:agg-ws}
-For each risk factor $k$ with attested sensitivity $s_k$ (DV01, CS01, or unit fund
-delta, expressed per unit of published valuation), the weighted sensitivity is
+For each risk factor $k$ with sensitivity $s_k$ (DV01, CS01, equity delta, or FX delta, expressed per unit of published valuation in the units of its risk weight), the weighted sensitivity is
 \begin{equation}\label{eq:agg-ws}
 \mathrm{WS}_k=\mathrm{RW}_k\, s_k\, \mathrm{CR}_k ,
 \end{equation}
 with $\mathrm{RW}_k$ read from the v2.6 tables for the class/bucket assignment of
-Section~\ref{sec:taxonomy}. The concentration risk factor keeps SIMM's functional form
-but re-keys its threshold from dealer-market terms to the only exit route that
-exists for this universe:
+Section~\ref{sec:taxonomy}. For fund redemptions, the concentration risk factor keeps SIMM's functional form
+but uses attested redemption capacity as its threshold:
 \begin{equation}\label{eq:agg-cr}
 \mathrm{CR}=\max\!\left(1,\sqrt{\frac{\mathrm{position}}{T}}\right),\qquad
 T=R_{\mathrm{cap}},
@@ -46,7 +44,7 @@ Haircuts therefore steepen automatically, and smoothly, as a position outgrows i
 route. The same number $R_{\mathrm{cap}}$ drives the borrow and supply caps in
 Section~\ref{sec:policy}. Because the supply cap satisfies
 $S_{\max}\le M R_{\mathrm{cap}}$, the multiplier is bounded:
-$\mathrm{CR}\le\sqrt{M}$.
+$\mathrm{CR}\le\sqrt{M}$. Single equities instead use the published threshold and sensitivity units of Eq.~\eqref{eq:equity-cr}.
 
 \subsection{Within-bucket aggregation}\label{sec:agg-bucket}
 Within each bucket $b$ of a risk class,
@@ -58,13 +56,13 @@ with $\rho_{kl}$ the published intra-bucket correlation, $(x)_+:=\max(x,0)$, and
 concentration-diversification factor
 $f_{kl}=\min(\mathrm{CR}_k,\mathrm{CR}_l)/\max(\mathrm{CR}_k,\mathrm{CR}_l)$.
 $f_{kl}$ lowers the diversification credit between factors held at different
-concentrations in the published standard, and under the re-keyed threshold it equals one
+concentrations in the published standard. Under the fund redemption threshold it equals one
 identically. The threshold is the single number $T=R_{\mathrm{cap}}$ and the position is
 the deployment's aggregate exposure to the collateral, so every factor of one collateral
 takes the same $\mathrm{CR}$, and the same holds for $g_{bc}$ in
-Eq.~\eqref{eq:ir}. The two factors take
+Eq.~\eqref{eq:ir}. For fund collateral, the two factors take
 values below one only where the practitioner measures positions at a finer granularity
-than the aggregate exposure of Eq.~\eqref{eq:agg-cr}. The zero floor is inert under the published
+than the aggregate exposure of Eq.~\eqref{eq:agg-cr}. Native equity concentration is per risk factor, so distinct equity factors can have $f_{kl}<1$. The zero floor is inert under the published
 correlations. FRTB applies the
 same guard one level up, in the across-bucket sum \citep{bcbs_frtb_d457}, which
 Eq.~\eqref{eq:dm} inherits through the bounds on $S_b$.
@@ -118,8 +116,7 @@ margins then add:
 \mathrm{IM}=\sum_p \mathrm{IM}_p .
 \end{equation}
 This is the strict SIMM v2.6 reading: the product-class margins, RatesFX and Credit among
-them, take no diversification between them. Where each product class holds one risk class, as it does for
-the collateral types in scope, that addition reduces to the plain sum of the class margins
+them, take no diversification between them. Where each product class holds one risk class, as in the worked examples, that addition reduces to the plain sum of the class margins
 and $\psi_{rr'}$ never enters. Margining the collateral as a single product class instead
 would diversify its rate and credit legs under $\psi_{rr'}$, and since $\psi_{rr'}\le 1$ it
 would return the smaller number. The two readings differ in aggregation structure rather
@@ -134,7 +131,7 @@ $\delta_{\mathrm{clear}}$, defined next. Keeping $\mathrm{IM}$ at the native ten
 horizon is deliberate, because exact reconciliation against the published ISDA standard
 holds only if the market-risk core is the unmodified standard.
 
-\paragraph{The clearing discount $\delta_{\mathrm{clear}}$.} The clearing discount reconciles the SIMM charge at ten business days to the price risk of the governing clearing window, as an additive haircut component held \emph{above} the liquidation threshold. Its single defining equation is Eq.~\eqref{eq:m-scaling} (Section~\ref{sec:theory}), which fixes the day-one value, the terms a margin credit requires, and the floor the rescaled move sets on the total price-risk charge. The framework does not prescribe the clearing mechanism.
+\paragraph{The clearing discount $\delta_{\mathrm{clear}}$.} The clearing discount reconciles the SIMM charge at ten business days to the price risk of the governing clearing window, as an additive haircut component held \emph{above} the liquidation threshold. Its price-risk definition is Eq.~\eqref{eq:m-scaling} (Section~\ref{sec:theory}), which fixes the day-one value, the terms a margin credit requires, and the floor the rescaled move sets on the total price-risk charge. Equity execution fees augment that reserve under Eq.~\eqref{eq:equity-clearing}. The framework does not prescribe the clearing mechanism.
 
 The haircut is
 \begin{equation}\label{eq:agg-haircut}
@@ -166,13 +163,13 @@ Eq.~\eqref{eq:dm}). A missing fund-unit attestation file reclassifies the positi
 to Equity Residual, whose published risk weight puts $H^{(a)}$ above one at any window from
 forty business days (Section~\ref{sec:agg-bounded}).
 
-The clearing window $\mathrm{LH}$ of Eq.~\eqref{eq:mpor-eff} takes no floor.
+For fund redemptions, the clearing window $\mathrm{LH}$ of Eq.~\eqref{eq:mpor-eff} takes no missing-data floor.
 The three-source hierarchy of Section~\ref{sec:theory:setting} always names a governing
 window: with neither an attested service-level agreement nor a horizon stated in the offering
 documents, the regulatory fallback governs and the worst-case wait is added to it. Observed
-redemptions are never averaged into the window at any level of the hierarchy.
+redemptions are never averaged into the window at any level of the hierarchy. Missing equity execution evidence instead stops new exposure under Section~\ref{sec:equity-execution}.
 
-An unattested redemption capacity leaves the threshold $T$ of Eq.~\eqref{eq:agg-cr}
+For fund redemptions, an unattested capacity leaves the threshold $T$ of Eq.~\eqref{eq:agg-cr}
 with no admissible value. The pre-signature document proxy supplies the conservative default from the offering
 document's stated per-cycle gate fraction $g$ times assets under management,
 $R_{\mathrm{cap}} = g\cdot\mathrm{AUM}$, for the first ramp step. Further exposure requires
@@ -184,11 +181,11 @@ asset.
 $H$ is bounded at each recomputation, component by component. The sensitivities $s_k$, per
 unit of published valuation, are bounded by the asset's duration, weighted-average life,
 or unit delta. The $\mathrm{RW}_k$ are fixed published magnitudes.
-$\mathrm{CR}\le\sqrt{M}$ holds under the supply cap (Section~\ref{sec:agg-ws}). The
+For funds, $\mathrm{CR}\le\sqrt{M}$ holds under the supply cap (Section~\ref{sec:agg-ws}). Equity concentration is finite at each finite assessed exposure under Eq.~\eqref{eq:equity-cr}. The
 model constants set by the practitioner for each layer remain fixed between reviews, so the baseline part of $\Lambda$ is a
 finite sum of constants at each recomputation.
 
-The day-one clearing discount is bounded on both sides by the windows that can govern the asset. It equals $\mathrm{IM}\bigl(\sqrt{\mathrm{LH}/10}-1\bigr)$ (Eq.~\eqref{eq:m-scaling}), which is largest at the longest admissible $\mathrm{LH}$. Under the regulatory fallback of the hierarchy, that window is the FRTB securitisation row of 120 business days plus the worst-case wait to the next submission deadline. An asset whose documented contractual window exceeds the FRTB row takes that contractual window instead, again with the wait added. Either way the governing window is documented, so the value is a finite number known at each recomputation. The negative side is bounded by the policy minimum of one business day, so $\mathrm{IM}+\delta_{\mathrm{clear}}$ never sits below $\mathrm{IM}\sqrt{1/10}$ and the credit never exceeds $0.684\,\mathrm{IM}$.
+The day-one clearing discount is bounded on both sides by the windows that can govern the asset. It equals $\mathrm{IM}\bigl(\sqrt{\mathrm{LH}/10}-1\bigr)$ (Eq.~\eqref{eq:m-scaling}), which is largest at the longest admissible $\mathrm{LH}$. For fund redemptions under the regulatory fallback of the hierarchy, the longest cited row is the FRTB securitisation row of 120 business days plus the worst-case wait to the next submission deadline. An asset whose documented contractual window exceeds the FRTB row takes that contractual window instead, again with the wait added. The governing redemption window is therefore documented and finite at each recomputation. For equities, positive execution capacity and a documented settlement calendar give a finite window under Eq.~\eqref{eq:equity-lh}. Missing capacity stops new exposure. Equity windows can exceed the cited FRTB rows. The negative side is bounded by the policy minimum of one business day, so $\mathrm{IM}+\delta_{\mathrm{clear}}$ never sits below $\mathrm{IM}\sqrt{1/10}$ and the credit never exceeds $0.684\,\mathrm{IM}$.
 
 Three inputs can rise above those bounds while an asset stays listed. Qualified clearing
 observations enter $\delta_{\mathrm{clear}}$ as their conservative quantile

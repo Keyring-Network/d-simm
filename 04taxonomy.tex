@@ -28,7 +28,7 @@ standard's published risk weights, correlations, and ten-business-day horizon un
 recorded here are deviations of scope and granularity rather than of any prescribed value.
 Administrator-attested Common Risk Interchange Format sensitivities $s_k$ enter the weighted sensitivities of
 Eq.~\eqref{eq:agg-ws}, each scaled by its published risk weight $\mathrm{RW}_k$ and by the
-concentration risk factor $\mathrm{CR}^{(a)}$ of Section~\ref{sec:tax-redemption}. The
+concentration risk factor $\mathrm{CR}^{(a)}$ of Section~\ref{sec:tax-redemption} for fund redemptions or Section~\ref{sec:equity-concentration} for single equities. The
 weighted sensitivities are then combined within each bucket under published correlations,
 across buckets, and finally across the risk classes, under the published SIMM correlations at
 each step. The $\psi$ roll-up across the risk classes IR, CreditQ, CreditNonQ, Equity, and
@@ -37,7 +37,7 @@ product-class margins then add with no diversification between them (Section~\re
 
 SIMM \P\,9 attaches vega and curvature margin only to instruments that are options or embed
 one, including prepayment options. A type that is a linear, long-only holding of fund units
-(the fund shares the tokens represent, Section~\ref{sec:fund-unit}) attracts neither.
+(the fund shares the tokens represent, Section~\ref{sec:fund-unit}) attracts neither. The same condition applies to a linear ordinary share in Section~\ref{sec:equities}.
 Amortising securitised exposures are the exception. Consumer-credit tranches and
 mortgage-backed sleeves embed prepayment optionality, and they would attract vega and
 curvature under a strict \P\,9 reading. The framework instead substitutes the tranche CS01 evaluated at the slower of the disclosed
@@ -64,7 +64,7 @@ direction.
 Each administrator-attested Common Risk Interchange Format row names its own risk class, bucket, and qualifier under
 SIMM v2.6's own definitions. Those definitions cover IR vertices (\P\,14), CreditQ
 issuer/seniority risk factors (\P\,15) bucketed by quality and sector (\P\,38), CreditNonQ
-tranche risk factors (\P\,16) with their buckets (\P\,45), equity fund units (\P\,17), and the
+tranche risk factors (\P\,16) with their buckets (\P\,45), equity fund units and single shares (\P\,17), and the
 qualifying-securitisation test (\P\,24). Each listing's assignment is fixed at onboarding as a
 documentation exercise, re-verified each valuation cycle, and any unattested row drops
 automatically to the Residual penalty route (Section~\ref{sec:agg-missing}).
@@ -78,7 +78,7 @@ Each proxy is constructed to bound the attested
 figure from above, and the administrator-attested Common Risk Interchange Format sensitivities file replaces the
 estimates at onboarding and at each valuation cycle after it. A fund-unit type whose driving
 input is the fund-unit delta itself is the exception, because that delta is 100\% of the
-published valuation, a documented fact rather than an estimate. An event-risk layer magnitude,
+published valuation, a documented fact rather than an estimate. A linear single share likewise takes a documented sensitivity of 1\% of value per 1\% price move (Section~\ref{sec:equity-concentration}). An event-risk layer magnitude,
 by contrast, is a day-one estimate pending the attested event-model file.
 
 \subsubsection{Fund-unit treatment for market-neutral funds}\label{sec:fund-unit}
@@ -214,7 +214,7 @@ Every inferred input takes a conservative proxy that bounds the attested figure 
 
 % ==== 3.3 Redemption liquidity ====
 \subsection{Redemption liquidity}\label{sec:tax-redemption}
-The exit is contractual: redemption from the issuer, not a sale into a market. Liquidity risk on this universe is the risk that the redemption process \emph{lengthens} (notice periods, queues, partial fills) or \emph{narrows} (gates, suspensions), and that positions outgrow attested capacity. Every input is read from offering documents or attested transfer-agent data at existing reporting frequency. Nothing is fitted.
+For fund collateral the exit is contractual redemption from the issuer at the published valuation. Liquidity risk on this universe is the risk that the redemption process \emph{lengthens} (notice periods, queues, partial fills) or \emph{narrows} (gates, suspensions), and that positions outgrow attested capacity. Every input is read from offering documents or attested transfer-agent data at existing reporting frequency. Nothing is fitted.
 
 \subsubsection{The clearing window and the clearing discount}
 When liquidation begins at $\mathrm{LTV}=\theta^{(a)}$, the position is held through the clearing
@@ -253,7 +253,7 @@ aggregate borrows against one window of attested capacity, computed per asset an
 \subsection{Operational and wrong-way risk}\label{sec:tax-ops}
 
 \subsubsection{Wrapper and transfer-agent risk}
-The token is a permissioned wrapper around fund shares: mint/burn authority, upgrade keys, allowlist administration, and custody of privileged roles are scored through the operational-security and custody dimensions of the due-diligence scorecard, with the residual held in the named manager/operational layer $\lambda_{\mathrm{ops}}$. For a short-duration type the layer stack can dominate the haircut, and the named decomposition keeps that attribution visible rather than mislabelling it as SIMM-derived market risk. Where listed assets share one tokenisation platform, a shared-service-provider concentration guardrail is monitored across listed collateral sets (Section~\ref{sec:policy-guardrails}).
+The token represents fund shares or an identified listed share: mint/burn authority, upgrade keys, allowlist administration, and custody of privileged roles are scored through the operational-security and custody dimensions of the due-diligence scorecard, with the residual held in the named manager/operational layer $\lambda_{\mathrm{ops}}$. For a short-duration type the layer stack can dominate the haircut, and the named decomposition keeps that attribution visible rather than mislabelling it as SIMM-derived market risk. Where listed assets share one tokenisation platform, a shared-service-provider concentration guardrail is monitored across listed collateral sets (Section~\ref{sec:policy-guardrails}).
 
 \subsubsection{Manager and valuation-process risk}
 Administrator and auditor independence, the valuation verification process, restatement history, key-person provisions, and (for leveraged fund types) attested leverage versus policy are scored in the governance dimension. The governance score charges for the quality of that evidence through the due-diligence multiplier $\kappa$. The layers $\lambda_{\mathrm{ops}}$ and $\lambda_{\mathrm{stale}}$ charge for the structural failure modes per type and retain their assigned values whatever the scorecard awards. A dimension drives $\kappa$ through the score or a named layer, never both. A leveraged fund type additionally takes the leverage add-on $\lambda_{\mathrm{lev}}$, charged per turn of attested leverage above the policy level, from the administrator-signed evidence file required by the treatment.

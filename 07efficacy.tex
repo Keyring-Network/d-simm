@@ -3,7 +3,7 @@
 % ==================
 \section{Redemption execution and feasibility}\label{sec:efficacy}
 
-A position in liquidation exits only through the issuer's own subscription and redemption
+For fund collateral, a position in liquidation exits through the issuer's own subscription and redemption
 process at the published valuation. Any on-chain secondary market is out of scope for this version, and an asset with a bridge or cross-chain dependence sits outside the framework's scope altogether (Section~\ref{sec:overview-channel}). The position is warehoused through the clearing window instead: it is held from
 the breach to cash settlement, over the clearing window $\mathrm{LH}^{(a)}$
 of Eq.~\eqref{eq:mpor-eff}. The framework reserves
@@ -100,7 +100,7 @@ lapse, the next source in the hierarchy of Eq.~\eqref{eq:mpor-eff} governs and t
 of Section~\ref{sec:policy} re-derive accordingly.
 
 \subsection{Feasibility condition}\label{sec:feasibility}
-The sole capacity check of the framework is that the largest permissible
+The capacity check for issuer redemption requires that the largest permissible
 debt position exits within one dealing window:
 \begin{equation}\label{eq:feasibility}
 B_{\max}^{(a)} \;\le\; Q_{\mathrm{cap,red}}^{(a)}

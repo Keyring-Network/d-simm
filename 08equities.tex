@@ -1,0 +1,267 @@
+\section{Tokenised single equities}\label{sec:equities}
+
+A tokenised single equity represents a linear, long-only claim on an identified
+listed share. We apply the underlying share's SIMM equity delta treatment to that
+claim. The settlement assumption is access to the underlying shares and their sale
+through an authorised intermediary. The practitioner must verify that the token's
+legal rights and custody arrangements permit that sale and payment of the proceeds
+to the lending market. A quoted underlying price alone establishes neither access
+to the shares nor an executable exit.
+
+The haircut retains the four components of Eq.~\eqref{eq:agg-haircut}. Share sales
+use the concentration and clearing-window definitions below. Fund redemptions
+retain the definitions of Sections~\ref{sec:theory:capacity}
+and~\ref{sec:efficacy}. Leveraged or inverse products, daily-reset funds, options,
+and synthetic claims require their own sensitivity and settlement treatment before
+admission. The bridge exclusion of Section~\ref{sec:overview-channel} still applies.
+
+\subsection{Underlying share and SIMM bucket}\label{sec:equity-buckets}
+
+The underlying share determines the equity risk factor and bucket. SIMM v2.6
+\P\P\,50--56 assign single shares to buckets 1--10 by capitalisation, region, and
+sector~\citep{isda_simm_v2_6}. Large capitalisation means at least USD 2 billion,
+measured across the issuer's global listings. Buckets 1--4 cover large emerging-market
+issuers and buckets 5--8 cover large developed-market issuers. Sector distinguishes
+the four buckets within each group. Buckets 9 and 10 cover small emerging-market
+and developed-market issuers respectively, across all sectors.
+
+Classification requires evidence of the issuer's most material activity and region.
+The practitioner records the underlying identifier and the dated evidence for each
+classification input. The developed-market list and the treatment of multinational
+issuers follow SIMM \P\P\,53--55~\citep{isda_simm_v2_6}. The exchange on which a
+share trades does not by itself establish its region. Missing evidence required for
+assignment sends the share to Equity Residual under \P\,56.
+
+Table~\ref{tab:equity-parameters} gives the v2.6 parameters used for single shares.
+The risk weight and concentration threshold are taken together from that version.
+Bucket 11 retains the fund-unit treatment of Section~\ref{sec:fund-unit}; wrapping
+a single share in a token leaves its underlying equity bucket unchanged.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Single-equity parameters from SIMM v2.6, \P\P\,56, 59 and 77.
+Risk weights multiply the sensitivity to a 1\% price move.
+Thresholds are USD millions of that sensitivity.}
+\label{tab:equity-parameters}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Bucket & Risk weight & Correlation & Threshold \\
+\midrule
+1 & 30 & 0.18 & 3.00 \\
+2 & 33 & 0.20 & 3.00 \\
+3 & 36 & 0.28 & 3.00 \\
+4 & 29 & 0.24 & 3.00 \\
+5 & 26 & 0.25 & 12.00 \\
+6 & 25 & 0.36 & 12.00 \\
+7 & 34 & 0.35 & 12.00 \\
+8 & 28 & 0.37 & 12.00 \\
+9 & 36 & 0.23 & 0.64 \\
+10 & 50 & 0.27 & 0.37 \\
+Residual & 50 & 0.00 & 0.37 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sensitivity and concentration}\label{sec:equity-concentration}
+
+SIMM equity sensitivity measures the value change for a relative move of one percentage point in the underlying price (\P\,26)~\citep{isda_simm_v2_6}.
+For an unleveraged share, the sensitivity per unit of published valuation is
+$s_k=0.01$. Thus a risk weight of 50 gives a weighted sensitivity of $0.50$
+before concentration. The equivalent exposure-delta convention uses unit delta
+with a fractional risk weight of $0.50$. An implementation must convert between
+these conventions explicitly when importing Common Risk Interchange Format rows.
+
+The assessed exposure covers the full supply cap and any larger live position.
+Let $E_{\mathrm{live}}^{(a)}$ be the current collateral value in USD and define
+\begin{equation}\label{eq:equity-exposure}
+C^{(a)}=\max\!\left(S_{\max}^{(a)},E_{\mathrm{live}}^{(a)}\right).
+\end{equation}
+The cap is a proposed input to the assessment. A cap reduction leaves the larger
+live exposure in this calculation until that exposure has run off. For one share
+denominated in the borrow currency, its USD sensitivity is $0.01C^{(a)}$ and
+\begin{equation}\label{eq:equity-cr}
+\mathrm{CR}^{(a)}_{\mathrm{EQ}}
+=\max\!\left(1,\sqrt{\frac{0.01C^{(a)}}{T_b^{\mathrm{EQ}}}}\right),
+\qquad
+\mathrm{IM}^{(a)}=\mathrm{RW}_b\,0.01\,\mathrm{CR}^{(a)}_{\mathrm{EQ}}.
+\end{equation}
+Here $T_b^{\mathrm{EQ}}$ is SIMM's published concentration threshold in USD of
+sensitivity. For bucket 10, $T_b^{\mathrm{EQ}}=370{,}000$ USD and concentration
+starts above USD 37 million of exposure. The published threshold replaces
+$R_{\mathrm{cap}}$ for this sale treatment.
+
+The aggregation equations of Section~\ref{sec:normalisation} apply to the weighted
+sensitivities. Distinct equity factors use their own concentration factors, so
+$f_{kl}$ can differ from one. Within-bucket correlations follow
+Table~\ref{tab:equity-parameters}, and cross-bucket correlations follow SIMM
+\P\,60~\citep{isda_simm_v2_6}. Residual remains additive. One share in one bucket
+has no pair to diversify, giving Eq.~\eqref{eq:equity-cr}. Any FX sensitivity of a
+share denominated outside the borrow currency must also enter the calculation,
+with the risk classes assigned to the applicable SIMM product class. The
+single-share formula above assumes that FX sensitivity is zero. A currency mismatch
+requires the hedge evidence of Section~\ref{sec:tax-market} and an explicit FX
+calculation before this simplified formula can support lending limits.
+
+\subsection{Sale horizon and caps}\label{sec:equity-execution}
+
+The sale horizon assumes that the entire assessed exposure liquidates together.
+Let $\mathrm{ADV}^{(a)}$ be the underlying share's average daily dollar volume over
+a stated number of completed regular trading sessions. The practitioner selects
+that observation period and a participation fraction $\pi^{(a)}\in(0,1]$, the
+maximum share of daily volume the liquidation may use. These are model choices
+registered in Appendix~\ref{sec:free-parameters}. The daily execution capacity and
+required number of sessions are
+\begin{equation}\label{eq:equity-sessions}
+D^{(a)}=\pi^{(a)}\mathrm{ADV}^{(a)},
+\qquad
+n^{(a)}=\left\lceil\frac{C^{(a)}}{D^{(a)}}\right\rceil.
+\end{equation}
+The ceiling applies before rounding any displayed volume or cap. The volume
+series must identify its source and observation date. Token trading volume and
+the issuer's total market capitalisation cannot substitute for the underlying
+share's executable volume.
+
+Cash settlement determines the end of the clearing window. Let
+$\mathcal{B}^{(a)}(n)$ be the documented worst-case elapsed time in business days
+from a liquidation breach to settled cash after $n$ execution sessions. It includes
+access to the shares, the wait for an eligible session, and settlement after the
+last sale. The relevant exchange and settlement calendars determine that time.
+
+Liquidations outside regular hours wait for the next eligible session. Holidays
+and shortened sessions must be reflected in the available execution capacity.
+For an ordinary daily calendar with additive access wait $w_{\mathrm{EQ}}$ and
+settlement lag $d_{s,\mathrm{EQ}}$, $\mathcal{B}(n)=w_{\mathrm{EQ}}+n+d_{s,\mathrm{EQ}}$.
+We set
+\begin{equation}\label{eq:equity-lh}
+\mathrm{LH}^{(a)}=\max\!\left(10,\mathcal{B}^{(a)}(n^{(a)})\right).
+\end{equation}
+
+The minimum of ten business days retains SIMM's native horizon because participation
+in observed volume is an execution estimate. It earns no shorter-window margin
+credit. The price-risk reserve then follows Eq.~\eqref{eq:m-scaling}, including
+its qualified-observation rule. Documented execution fees augment that reserve
+under Eq.~\eqref{eq:equity-clearing}. The interest reserve follows
+Eq.~\eqref{eq:carry-solve} over the same window.
+
+The practitioner approves a supply cap only after assessing its implied haircut
+and lending limits. At that cap the borrow limit must be positive and the haircut
+must be below one. The pool-level borrow cap satisfies
+\begin{equation}\label{eq:equity-caps}
+B_{\max}^{(a)}\le\ell_{\max}^{(a)}S_{\max}^{(a)}.
+\end{equation}
+The proposed supply cap is held fixed while the calculation runs. Changing the
+cap requires a new assessment because both concentration and the sale horizon
+depend on it.
+
+Equity feasibility requires evidence that the whole assessed exposure can be sold
+and settled within the calculated window. The redemption multiple $M$ and the
+one-window redemption-capacity test apply to fund redemptions.
+The participation assumption requires validation under stressed volume.
+
+Documented execution fees are an additional cost of settlement. Let
+$\epsilon_{\mathrm{exec}}^{(a)}\ge0$ be those fees as a fraction of collateral value,
+including any fixed fee divided by the assessed exposure. The equity treatment
+extends the price-risk reserve of Eq.~\eqref{eq:m-scaling} to
+\begin{equation}\label{eq:equity-clearing}
+\begin{aligned}
+A^{(a)}_{\mathrm{EQ}}&=\mathrm{IM}^{(a)}\sqrt{\mathrm{LH}^{(a)}/10}
++\epsilon_{\mathrm{exec}}^{(a)},\\
+\mathrm{IM}^{(a)}+\delta_{\mathrm{clear}}^{(a)}&=
+\begin{cases}
+A^{(a)}_{\mathrm{EQ}} & \text{before qualified observations,}\\
+\max\!\left(A^{(a)}_{\mathrm{EQ}},\delta_{\mathrm{obs}}^{(a)}\right)
+& \text{once }\ge N_{\mathrm{obs}}\text{ qualify.}
+\end{cases}
+\end{aligned}
+\end{equation}
+Observed clearing cost includes fees, so the maximum counts them once.
+Fee evidence is required before the cap can support new exposure.
+
+Shared execution capacity is counted once across deployments. The practitioner
+aggregates exposures to the same underlying share when evaluating concentration
+and simultaneous sale demand. Distinct tokens backed by the same share use the
+same underlying volume budget. In Eqs.~\eqref{eq:equity-cr} and~\eqref{eq:equity-sessions}, $C^{(a)}$ then denotes the sum of assessed exposures sharing that underlying, with access and settlement assessed for each arrangement.
+
+A fall in volume lengthens the assessed horizon
+and requires lower limits for new exposure or a lower cap. Missing or stale volume,
+an unavailable sale arrangement, a trading suspension, or an unverified valuation
+feed stops new borrowing. Missing execution-capacity evidence also sets the cap
+for new collateral inflow to zero. Reductions follow the treatment of existing
+positions in Section~\ref{sec:operations}.
+
+\subsection{Valuation and additive layers}\label{sec:equity-layers}
+
+The published valuation follows verified observations of the underlying share.
+Between observations Eq.~\eqref{eq:nav-process} applies with $y^{(a)}=0$.
+Dividends and corporate actions require an attested adjustment to the token's
+share entitlement or cash balance when recognised. A dividend yield is not
+deterministic appreciation between price observations. The publication calendar
+must specify how the feed treats exchange closures and the next opening price.
+The buffer interval $\Delta t_A$ includes those closures and any publication lag.
+A frequent feed heartbeat does not shorten an interval with no usable underlying
+quotation.
+
+Valuation staleness includes the ordinary gap between an exchange session and
+the next usable price. The practitioner sets its baseline and the oracle-integrity
+charge under the existing layer definitions. The overdue-publication escalation
+still follows Eq.~\eqref{eq:stale}. Wrong-way risk takes a positive charge where
+the issuer's business creates a documented connection between the share's loss
+and borrower stress, for example a crypto-dependent operating company.
+
+The same fact enters either a named layer or the due-diligence multiplier.
+Where the scorecard already charges a specific operational or settlement weakness,
+that fact contributes no second charge through $\lambda_{\mathrm{ops}}$ or
+$\lambda_{\mathrm{gate}}$. A distinct residual risk requires its own documented
+assignment. The private-credit default add-on remains specific to private credit.
+We apply the equity risk weight without a separate generic equity jump charge.
+That is a model assumption: the square-root rescaling does not establish a bound
+on losses from a trading halt, an opening gap, or issuer failure.
+
+\subsection{A small-cap share worked example}\label{sec:equity-example}
+
+A hypothetical developed-market small-cap share falls in bucket 10. Assume
+USD 200{,}000 of average daily dollar volume over 21 completed sessions and
+10\% participation. Daily execution capacity is USD 20{,}000. The example assumes
+one business day of access wait and one business day of settlement after the final
+session, with a regular daily calendar. Live exposure is at or below each proposed
+cap in Table~\ref{tab:equity-example}.
+
+The example assumes zero incremental execution fees and uses practitioner choices
+of $\Lambda=0.025$, $\kappa=0.75$,
+$\nu=0.08$, and a ceiling annual borrow rate of $0.20$. These values illustrate
+the calculation and are not prescribed SIMM parameters. Every cap shown is below
+the USD 37 million concentration threshold, so $\mathrm{CR}=1$ and
+$\mathrm{IM}=0.50$. With no qualified clearing observations, the quantities before
+the interest reserve and after it are
+\begin{equation}\label{eq:equity-example}
+H_0=0.50\sqrt{\mathrm{LH}/10}+0.025,\qquad
+c=0.20\,\mathrm{LH}/252,\qquad
+\theta=\frac{0.75(1-H_0)}{1+0.75c}.
+\end{equation}
+For an admissible $H_0<1$, the total haircut is $H=H_0+\theta c$ and the borrow
+limit is $\max(0,\theta-0.08)$. An $H_0\ge1$ makes the proposed cap ineligible
+before the interest calculation, preventing a negative debt or interest reserve.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Illustrative bucket-10 limits at proposed supply caps. Monetary values
+are USD thousands. Haircuts and lending limits are percentages.
+The clearing window includes access wait and settlement.}
+\label{tab:equity-example}
+\begin{tabular}{@{}rrrrrr@{}}
+\toprule
+Cap & Sessions & $\mathrm{LH}$ & $H$ & LLTV & LTV \\
+\midrule
+100 & 5 & 10 & 52.78 & 35.41 & 27.41 \\
+250 & 13 & 15 & 64.06 & 26.96 & 18.96 \\
+500 & 25 & 27 & 84.90 & 11.32 & 3.32 \\
+750 & 38 & 40 & Ineligible & 0.00 & 0.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The sale horizon lowers permitted borrowing well before native SIMM concentration
+increases the margin. At the USD 750{,}000 cap, $H_0=1.025$ exceeds the asset's
+value and the cap fails the eligibility rule. The example therefore makes supply
+capacity an input to lending limits even when the share's SIMM risk weight and
+concentration factor remain unchanged.

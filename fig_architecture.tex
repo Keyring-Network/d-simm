@@ -32,7 +32,7 @@
   lab/.style={font=\footnotesize, text=dsMuted, inner xsep=1.1mm, inner ysep=0.8mm},
 ]
   % the pass, left to right
-  \node[pass]                    (in)  {Attested terms\\Published risk weights};
+  \node[pass]                    (in)  {Attested terms\\Published risk weights\\Market data and caps};
   \node[pass, right=16mm of in]  (eng) {D-SIMM haircut engine};
   \node[pass, right=16mm of eng] (lim) {On-chain limits\\$\theta,\ \ell_{\max}$, caps};
 
@@ -45,8 +45,9 @@
   \draw[flow] (dd)  -- node[lab, right] {admit or reject} (in);
   \draw[back] (mon) -- node[lab, left]  {reduces limits} (lim);
 \end{tikzpicture}
-\caption{Attested terms and published risk weights feed the D-SIMM haircut
-engine. The haircut $H$ sets the active on-chain limits with no iteration. Due
-diligence admits or rejects an asset, and monitoring can only reduce those limits.}
+\caption{Attested terms and published parameters determine the haircut.
+Equity assessments also use market data and a proposed supply cap.
+The haircut determines lending limits. Due diligence governs admission,
+and monitoring can reduce active limits.}
 \label{fig:architecture}
 \end{figure}
